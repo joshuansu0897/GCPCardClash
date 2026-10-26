@@ -1,0 +1,8 @@
+# Architecture Decision Records
+
+Plain-Markdown log of architectural decisions governing this repository.
+
+| ADR | Title | Status | Date |
+| :--- | :--- | :--- | :--- |
+| [ADR-0001](0001-adopt-hexagonal-and-adr-memory.md) | Adopt Hexagonal Screaming Architecture and Markdown ADRs | Accepted | 2026-10-26 |
+| [ADR-0002](0002-pure-domain-card-clash-engine-and-browser-progress-port.md) | Pure Domain Card Clash Engine and Browser Progress Port | Accepted | 2026-10-26 |
