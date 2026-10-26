@@ -21,9 +21,8 @@ import {
   appendLog,
   applyEnergyCard,
   applyServiceDeployment,
-  applyShieldToSlot,
-  discardAndDrawCard,
 } from '../../domain/placement-rules';
+import { applyShieldToSlot, discardAndDrawCard } from '../../domain/shield-rules';
 
 export interface StartMatchOptions {
   readonly blueprint: ArchitectureBlueprint;

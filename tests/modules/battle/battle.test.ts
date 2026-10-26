@@ -184,7 +184,6 @@ describe('Battle bounded context', () => {
       ['cloud-run', 'web-runtime'],
       ['cloud-sql-ha', 'orders-db'],
     ];
-
     for (const [cardId, slotId] of deployPairs) {
       state = { ...state, playerEnergy: 6, hand: [{ instanceId: `id-${slotId}`, cardId }] };
       state = performMatchAction(state, storefrontBlueprint, overview.cardsById, {
@@ -203,16 +202,13 @@ describe('Battle bounded context', () => {
         { instanceId: 's5', cardId: 'cloud-storage' },
       ],
     };
-    state = performMatchAction(state, storefrontBlueprint, overview.cardsById, {
-      type: 'apply-shield',
-      instanceId: 'sh1',
-      slotId: 'ingress-lb',
-    });
-    state = performMatchAction(state, storefrontBlueprint, overview.cardsById, {
-      type: 'apply-shield',
-      instanceId: 'sh2',
-      slotId: 'web-runtime',
-    });
+    for (const [instanceId, slotId] of [['sh1', 'ingress-lb'], ['sh2', 'web-runtime']] as const) {
+      state = performMatchAction(state, storefrontBlueprint, overview.cardsById, {
+        type: 'apply-shield',
+        instanceId,
+        slotId,
+      });
+    }
     state = performMatchAction(state, storefrontBlueprint, overview.cardsById, {
       type: 'deploy-service',
       instanceId: 's5',
