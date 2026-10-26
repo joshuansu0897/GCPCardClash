@@ -1,0 +1,206 @@
+/**
+ * Reference Architecture Blueprints for Track 2 (Global & Hybrid Cloud Architect).
+ */
+
+import type { ArchitectureBlueprint } from '../../domain/blueprint';
+
+export const ARCHITECT_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
+  {
+    id: 'arc-201-global-fintech',
+    code: 'ARC-201',
+    trackId: 'architect',
+    title: 'Multi-Region Active-Active Payment Core',
+    difficulty: 'Professional',
+    workloadBrief:
+      'Architect a regulated global payment ledger serving external fintech partners with active-active multi-region writes, zero RPO, and WORM audit retention.',
+    targetSla: '99.999% Multi-Region Active-Active',
+    costFocus: 'Prioritize zero data loss (RPO=0) and external consistency across continents.',
+    zones: [
+      { id: 'edge', label: 'Global API & Edge', ink: 'edge', column: 1 },
+      { id: 'compute', label: 'Multi-Cluster Mesh', ink: 'compute', column: 2 },
+      { id: 'data', label: 'Global Ledger & Audit', ink: 'data', column: 3 },
+    ],
+    slots: [
+      {
+        id: 'anycast-edge',
+        zoneId: 'edge',
+        row: 1,
+        title: 'Multi-Region Anycast Ingress',
+        requirementClue: 'Route global payment traffic to the closest healthy continent with instant regional failover.',
+        acceptedServiceIds: ['global-ext-alb'],
+        recommendedShield: 'cloud-armor-waf',
+        antiPatternHints: {
+          'cloud-nat': 'Cloud NAT is outbound-only; global multi-region ingress requires Global External ALB.',
+        },
+        defaultAntiPatternReason: 'Cross-region active-active failover on a single IP requires Global External ALB on Premium Tier.',
+        architecturalRationale: 'Premium Tier Global ALB steers traffic away from unhealthy regions within seconds.',
+      },
+      {
+        id: 'partner-gateway',
+        zoneId: 'edge',
+        row: 2,
+        title: 'Monetized Partner API Proxy',
+        requirementClue: 'Enforce per-partner OAuth/mTLS quotas, developer onboarding portals, and API billing tiers.',
+        acceptedServiceIds: ['apigee-api'],
+        recommendedShield: 'cloud-armor-waf',
+        antiPatternHints: {
+          'cloud-cdn': 'CDN caches public GET assets; partner OAuth quotas and monetization require Apigee.',
+        },
+        defaultAntiPatternReason: 'Partner developer portals, quota tiers, and API monetization require Apigee API Management.',
+        architecturalRationale: 'Apigee enforces spike arrest, mTLS, OAuth policies, and monetization across external fintech partners.',
+      },
+      {
+        id: 'payment-mesh',
+        zoneId: 'compute',
+        row: 1,
+        title: 'Multi-Region Microservices Fleet',
+        requirementClue: 'Orchestrate dozens of polyglot gRPC payment services with mutual TLS service mesh across regions.',
+        acceptedServiceIds: ['gke-autopilot'],
+        recommendedShield: 'iam-least-privilege',
+        antiPatternHints: {
+          'cloud-run-functions': 'Event functions cannot host a multi-cluster mTLS Kubernetes service mesh.',
+          'compute-engine-mig': 'Raw VMs lack declarative pod scheduling, Workload Identity, and native multi-cluster Gateway APIs.',
+        },
+        defaultAntiPatternReason: 'Polyglot multi-cluster service meshes belong on GKE Autopilot.',
+        architecturalRationale: 'GKE Autopilot with Multi-Cluster Ingress and Cloud Service Mesh delivers active-active container resilience.',
+      },
+      {
+        id: 'global-ledger',
+        zoneId: 'data',
+        row: 1,
+        title: 'Global External-Consistency Ledger',
+        requirementClue: 'Execute multi-region active-active SQL ACID payment transfers with 99.999% SLA and zero RPO.',
+        acceptedServiceIds: ['cloud-spanner'],
+        recommendedShield: 'kms-secret-manager',
+        antiPatternHints: {
+          'cloud-sql-ha': 'Cloud SQL has a single regional write primary; cross-region failover is async and cannot do active-active writes.',
+          'alloydb-postgres': 'AlloyDB cross-region replicas are asynchronous; global synchronous multi-region writes require Cloud Spanner.',
+          'cloud-bigtable': 'Bigtable lacks multi-row relational SQL ACID transactions required for double-entry ledgers.',
+        },
+        defaultAntiPatternReason: 'Global active-active relational ACID with 99.999% availability uniquely requires Cloud Spanner.',
+        architecturalRationale: 'Cloud Spanner TrueTime guarantees external consistency across multi-region read-write quorums.',
+      },
+      {
+        id: 'worm-archive',
+        zoneId: 'data',
+        row: 2,
+        title: '7-Year WORM Regulatory Archive',
+        requirementClue: 'Retain immutable signed audit trails for 7 years under strict SEC/PCI non-deletion Bucket Lock.',
+        acceptedServiceIds: ['cloud-storage'],
+        recommendedShield: 'vpc-service-controls',
+        antiPatternHints: {
+          'memorystore-redis': 'Volatile RAM caches cannot satisfy 7-year immutable WORM regulatory retention.',
+        },
+        defaultAntiPatternReason: 'Locked Retention Policies (WORM) and Archive storage classes are provided by Cloud Storage.',
+        architecturalRationale: 'Cloud Storage Bucket Lock enforces irreversible WORM compliance while Archive tier minimizes 7-year cost.',
+      },
+    ],
+    edges: [
+      { id: 'e1', fromSlotId: 'anycast-edge', toSlotId: 'partner-gateway', protocolLabel: 'mTLS HTTPS' },
+      { id: 'e2', fromSlotId: 'partner-gateway', toSlotId: 'payment-mesh', protocolLabel: 'Validated gRPC' },
+      { id: 'e3', fromSlotId: 'payment-mesh', toSlotId: 'global-ledger', protocolLabel: 'TrueTime SQL ACID' },
+      { id: 'e4', fromSlotId: 'payment-mesh', toSlotId: 'worm-archive', protocolLabel: 'Signed Audit Log' },
+    ],
+    distractorServiceIds: ['cloud-sql-ha', 'alloydb-postgres', 'cloud-bigtable', 'cloud-run-functions'],
+    solutionSummary:
+      'Global ALB + Apigee govern partner traffic into a multi-region GKE Autopilot mesh backed by Cloud Spanner for 99.999% active-active ACID ledger writes and locked Cloud Storage WORM archives.',
+  },
+  {
+    id: 'arc-202-hybrid-erp',
+    code: 'ARC-202',
+    trackId: 'architect',
+    title: 'Hybrid Enterprise ERP & Analytics Extension',
+    difficulty: 'Professional',
+    workloadBrief:
+      'Connect an on-premises manufacturing data center over 20 Gbps private fiber to modernize an Oracle/PostgreSQL ERP database and centralize BI analytics.',
+    targetSla: '99.99% Hybrid Connectivity & DB',
+    costFocus: 'Avoid public internet egress; consolidate transactional + analytical SQL engines.',
+    zones: [
+      { id: 'edge', label: 'Hybrid Network Edge', ink: 'edge', column: 1 },
+      { id: 'compute', label: 'Private VPC Compute', ink: 'compute', column: 2 },
+      { id: 'data', label: 'Enterprise OLTP & BI', ink: 'data', column: 3 },
+    ],
+    slots: [
+      {
+        id: 'hybrid-fiber',
+        zoneId: 'edge',
+        row: 1,
+        title: '20 Gbps Private Hybrid Circuit',
+        requirementClue: 'Link on-premises colocation racks to GCP VPCs with deterministic sub-5ms latency at 2 x 10 Gbps.',
+        acceptedServiceIds: ['cloud-interconnect'],
+        recommendedShield: 'vpc-service-controls',
+        antiPatternHints: {
+          'global-ext-alb': 'External ALB exposes public internet HTTP endpoints rather than private Layer-3 BGP fiber to on-prem.',
+        },
+        defaultAntiPatternReason: 'Multi-10Gbps private colocation fiber with 99.99% SLA requires Dedicated Cloud Interconnect.',
+        architecturalRationale: 'Dedicated Interconnect with redundant VLAN attachments over Cloud Router BGP provides 20+ Gbps hybrid bandwidth.',
+      },
+      {
+        id: 'erp-vms',
+        zoneId: 'compute',
+        row: 1,
+        title: 'Private Licensing-Bound ERP VMs',
+        requirementClue: 'Host custom-kernel ERP application nodes with zero external IP addresses across zones.',
+        acceptedServiceIds: ['compute-engine-mig'],
+        recommendedShield: 'identity-aware-proxy',
+        antiPatternHints: {
+          'cloud-run': 'Custom OS kernel modules and host-bound legacy ERP daemons cannot run inside stateless Cloud Run sandboxes.',
+        },
+        defaultAntiPatternReason: 'Custom-kernel VMs requiring autohealing across zones belong in a Compute Engine Regional MIG.',
+        architecturalRationale: 'Regional MIGs maintain target VM counts with autohealing while IAP TCP forwarding enables SSH without public IPs.',
+      },
+      {
+        id: 'private-egress',
+        zoneId: 'compute',
+        row: 2,
+        title: 'Outbound Vendor Patching Gateway',
+        requirementClue: 'Allow private ERP VMs (no public IPs) to download signed OS/vendor patches outbound without opening inbound ports.',
+        acceptedServiceIds: ['cloud-nat'],
+        recommendedShield: 'iam-least-privilege',
+        antiPatternHints: {
+          'cloud-cdn': 'Cloud CDN caches inbound public HTTP responses, not outbound NAT for private VMs.',
+        },
+        defaultAntiPatternReason: 'Outbound internet access for private-IP VMs requires Cloud NAT.',
+        architecturalRationale: 'Cloud NAT provides software-defined outbound translation with zero proxy bottleneck VMs.',
+      },
+      {
+        id: 'erp-oltp',
+        zoneId: 'data',
+        row: 1,
+        title: 'High-Throughput PostgreSQL Core',
+        requirementClue: 'Run heavy enterprise PostgreSQL OLTP + real-time operational column scans at 99.99% SLA.',
+        acceptedServiceIds: ['alloydb-postgres'],
+        recommendedShield: 'kms-secret-manager',
+        antiPatternHints: {
+          'cloud-sql-ha': 'Cloud SQL caps SLA at 99.95% and lacks AlloyDB disaggregated storage and built-in columnar engine.',
+          'firestore-db': 'Document NoSQL breaks complex relational ERP joins and stored procedures.',
+        },
+        defaultAntiPatternReason: 'High-throughput enterprise PostgreSQL needing 99.99% SLA and HTAP acceleration maps to AlloyDB.',
+        architecturalRationale: 'AlloyDB delivers 99.99% availability (including maintenance) and a vectorized columnar engine for ERP queries.',
+      },
+      {
+        id: 'bi-warehouse',
+        zoneId: 'data',
+        row: 2,
+        title: 'Cross-Plant Executive BI Warehouse',
+        requirementClue: 'Run petabyte SQL supply-chain forecasting across historical ERP and factory datasets.',
+        acceptedServiceIds: ['bigquery-dw'],
+        recommendedShield: 'vpc-service-controls',
+        antiPatternHints: {
+          'memorystore-redis': 'In-memory Redis cannot run petabyte historical SQL aggregations.',
+        },
+        defaultAntiPatternReason: 'Serverless petabyte SQL analytics and BI federation belong in BigQuery.',
+        architecturalRationale: 'BigQuery federated queries and Datastream CDC analyze AlloyDB ERP changes in near real time.',
+      },
+    ],
+    edges: [
+      { id: 'e1', fromSlotId: 'hybrid-fiber', toSlotId: 'erp-vms', protocolLabel: 'BGP Private RFC1918' },
+      { id: 'e2', fromSlotId: 'erp-vms', toSlotId: 'private-egress', protocolLabel: 'Outbound HTTPS' },
+      { id: 'e3', fromSlotId: 'erp-vms', toSlotId: 'erp-oltp', protocolLabel: 'Private Service Access' },
+      { id: 'e4', fromSlotId: 'erp-oltp', toSlotId: 'bi-warehouse', protocolLabel: 'CDC / Federated SQL' },
+    ],
+    distractorServiceIds: ['cloud-run', 'cloud-sql-ha', 'global-ext-alb', 'firestore-db'],
+    solutionSummary:
+      'Dedicated Interconnect links on-prem plants privately to Compute Engine MIGs (egressing via Cloud NAT), backed by AlloyDB for 99.99% PostgreSQL OLTP and BigQuery for enterprise BI.',
+  },
+];

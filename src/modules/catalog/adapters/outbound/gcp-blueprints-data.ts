@@ -1,0 +1,205 @@
+/**
+ * Reference Architecture Blueprints for Track 3 (Serverless & Streaming Data).
+ */
+
+import type { ArchitectureBlueprint } from '../../domain/blueprint';
+
+export const SERVERLESS_DATA_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
+  {
+    id: 'arc-301-iot-streaming',
+    code: 'ARC-301',
+    trackId: 'serverless-data',
+    title: 'Real-Time IoT Telemetry & Lakehouse',
+    difficulty: 'Professional',
+    workloadBrief:
+      'Ingest 500,000 smart-meter readings/sec globally, compute windowed anomaly aggregates with late-data watermarks, and serve both sub-10ms live device lookups and historical SQL.',
+    targetSla: '99.95% End-to-End Streaming',
+    costFocus: 'Autoscale stream workers; tier raw payloads into cold object storage.',
+    zones: [
+      { id: 'ingest', label: 'Global Event Ingest', ink: 'edge', column: 1 },
+      { id: 'stream', label: 'Stream Processing', ink: 'compute', column: 2 },
+      { id: 'serving', label: 'Hot, Analytical & Cold Stores', ink: 'data', column: 3 },
+    ],
+    slots: [
+      {
+        id: 'telemetry-bus',
+        zoneId: 'ingest',
+        row: 1,
+        title: 'Global Shock-Absorber Bus',
+        requirementClue: 'Buffer 500k bursty device messages/sec globally with at-least-once durability and replay.',
+        acceptedServiceIds: ['pubsub-bus'],
+        recommendedShield: 'iam-least-privilege',
+        antiPatternHints: {
+          'workflows-eventarc': 'Workflows orchestrates control-plane API steps; it cannot ingest 500k telemetry packets/sec.',
+          'cloud-sql-ha': 'Writing 500k raw sensor events/sec directly to Cloud SQL saturates single-primary IOPS immediately.',
+        },
+        defaultAntiPatternReason: 'High-volume decoupled global event ingestion requires Pub/Sub.',
+        architecturalRationale: 'Pub/Sub absorbs massive regional spikes and fans out streams to Dataflow without backpressure on devices.',
+      },
+      {
+        id: 'beam-processor',
+        zoneId: 'stream',
+        row: 1,
+        title: 'Windowed Exactly-Once Stream ETL',
+        requirementClue: 'Apply 5-minute sliding windows, handle out-of-order late telemetry via watermarks, and route outputs.',
+        acceptedServiceIds: ['dataflow-beam'],
+        recommendedShield: 'iam-least-privilege',
+        antiPatternHints: {
+          'cloud-run-functions': 'Stateless functions cannot maintain distributed sliding event-time windows with exactly-once watermarks.',
+        },
+        defaultAntiPatternReason: 'Stateful windowed stream processing with watermarks and exactly-once sinks requires Dataflow.',
+        architecturalRationale: 'Dataflow (Apache Beam) handles event-time windowing, deduplication, and dynamic worker autoscaling.',
+      },
+      {
+        id: 'hot-timeseries',
+        zoneId: 'serving',
+        row: 1,
+        title: 'Sub-10ms Live Device Twin Store',
+        requirementClue: 'Serve live dashboard queries for the latest 24h readings per device ID in < 6 ms at 500k writes/sec.',
+        acceptedServiceIds: ['cloud-bigtable'],
+        recommendedShield: 'vpc-service-controls',
+        antiPatternHints: {
+          'firestore-db': 'Firestore document pricing and throughput model is less suited than Bigtable for 500k/sec wide-column time series.',
+          'bigquery-dw': 'BigQuery optimizes analytical scans, not single-digit-millisecond per-device row lookups.',
+        },
+        defaultAntiPatternReason: 'Petabyte wide-column time-series at hundreds of thousands of writes/sec belongs in Cloud Bigtable.',
+        architecturalRationale: 'Cloud Bigtable delivers consistent sub-10ms point/range reads on well-designed `device#reverseTimestamp` keys.',
+      },
+      {
+        id: 'analytics-sql',
+        zoneId: 'serving',
+        row: 2,
+        title: 'Grid Forecasting SQL Warehouse',
+        requirementClue: 'Enable data scientists to run ad-hoc SQL joins and BigQuery ML anomaly forecasts across years of telemetry.',
+        acceptedServiceIds: ['bigquery-dw'],
+        recommendedShield: 'vpc-service-controls',
+        antiPatternHints: {
+          'cloud-sql-ha': 'Cloud SQL is an OLTP engine limited to 64 TB, not a petabyte columnar OLAP warehouse.',
+        },
+        defaultAntiPatternReason: 'Petabyte serverless SQL analytics and ML forecasting belong in BigQuery.',
+        architecturalRationale: 'BigQuery Storage Write API ingests high-throughput streams directly into partitioned columnar tables.',
+      },
+      {
+        id: 'raw-lake',
+        zoneId: 'serving',
+        row: 3,
+        title: 'Raw Parquet Replay Lake',
+        requirementClue: 'Archive unaltered raw Avro/Parquet batches with lifecycle tiering to Coldline after 90 days.',
+        acceptedServiceIds: ['cloud-storage'],
+        recommendedShield: 'kms-secret-manager',
+        antiPatternHints: {
+          'memorystore-redis': 'In-memory Redis cannot serve as a low-cost multi-year Parquet replay data lake.',
+        },
+        defaultAntiPatternReason: 'Cost-tiered raw Avro/Parquet lake storage requires Cloud Storage.',
+        architecturalRationale: 'Cloud Storage Object Lifecycle Management automatically transitions aging Parquet files to Coldline/Archive.',
+      },
+    ],
+    edges: [
+      { id: 'e1', fromSlotId: 'telemetry-bus', toSlotId: 'beam-processor', protocolLabel: 'Streaming Pull' },
+      { id: 'e2', fromSlotId: 'beam-processor', toSlotId: 'hot-timeseries', protocolLabel: 'MutateRows RPC' },
+      { id: 'e3', fromSlotId: 'beam-processor', toSlotId: 'analytics-sql', protocolLabel: 'Storage Write API' },
+      { id: 'e4', fromSlotId: 'beam-processor', toSlotId: 'raw-lake', protocolLabel: 'Windowed Parquet' },
+    ],
+    distractorServiceIds: ['workflows-eventarc', 'cloud-run-functions', 'cloud-sql-ha', 'firestore-db'],
+    solutionSummary:
+      'Pub/Sub ingests global device bursts into Dataflow, which fans out windowed streams simultaneously to Cloud Bigtable (sub-10ms serving), BigQuery (SQL/ML analytics), and Cloud Storage (cold Parquet lake).',
+  },
+  {
+    id: 'arc-302-order-saga',
+    code: 'ARC-302',
+    trackId: 'serverless-data',
+    title: 'Event-Driven Order Fulfillment Saga',
+    difficulty: 'Associate',
+    workloadBrief:
+      'Coordinate multi-step payment capture, inventory reservation, carrier webhook callbacks, and real-time mobile order status updates with zero idle servers.',
+    targetSla: '99.95% Serverless Event Reliability',
+    costFocus: '100% pay-per-invocation serverless orchestration + choreography.',
+    zones: [
+      { id: 'edge', label: 'Partner & Mobile API', ink: 'edge', column: 1 },
+      { id: 'serverless', label: 'Saga & Event Plane', ink: 'compute', column: 2 },
+      { id: 'state', label: 'Live Client State', ink: 'data', column: 3 },
+    ],
+    slots: [
+      {
+        id: 'checkout-api',
+        zoneId: 'edge',
+        row: 1,
+        title: 'Managed Checkout API Gateway',
+        requirementClue: 'Enforce OAuth scopes, spike arrest, and schema validation on mobile/partner order submissions.',
+        acceptedServiceIds: ['apigee-api', 'global-ext-alb'],
+        recommendedShield: 'cloud-armor-waf',
+        antiPatternHints: {
+          'cloud-interconnect': 'Mobile shoppers connect over public HTTPS, not private data-center fiber.',
+        },
+        defaultAntiPatternReason: 'Public API quota management and OAuth policy enforcement belong at Apigee (or Global ALB).',
+        architecturalRationale: 'Apigee protects backend serverless sagas with rate quotas and JWT validation.',
+      },
+      {
+        id: 'saga-orchestrator',
+        zoneId: 'serverless',
+        row: 1,
+        title: 'Stateful Payment-Inventory Saga',
+        requirementClue: 'Execute ordered steps (reserve stock -> charge card -> refund on failure) with durable sleep/callbacks.',
+        acceptedServiceIds: ['workflows-eventarc'],
+        recommendedShield: 'iam-least-privilege',
+        antiPatternHints: {
+          'pubsub-bus': 'Pub/Sub fans out events asynchronously but has no built-in state machine for ordered compensating rollbacks.',
+          'dataflow-beam': 'Dataflow is a bulk data-plane ETL engine, not a transactional microservice saga orchestrator.',
+        },
+        defaultAntiPatternReason: 'Ordered step state machines with retries and compensating rollbacks require Workflows + Eventarc.',
+        architecturalRationale: 'Cloud Workflows persists execution step state durably and supports external carrier callbacks up to 1 year.',
+      },
+      {
+        id: 'domain-events',
+        zoneId: 'serverless',
+        row: 2,
+        title: 'Domain Event Fan-Out Bus',
+        requirementClue: 'Broadcast `OrderShipped` events asynchronously to loyalty, email, and analytics subscribers.',
+        acceptedServiceIds: ['pubsub-bus'],
+        recommendedShield: 'iam-least-privilege',
+        antiPatternHints: {
+          'memorystore-redis': 'Ephemeral Redis pub/sub drops messages if subscribers disconnect; durable replay requires Cloud Pub/Sub.',
+        },
+        defaultAntiPatternReason: 'Durable asynchronous event fan-out with dead-letter queues requires Pub/Sub.',
+        architecturalRationale: 'Pub/Sub decouples downstream loyalty and notification consumers with durable message retention.',
+      },
+      {
+        id: 'webhook-worker',
+        zoneId: 'serverless',
+        row: 3,
+        title: 'Notification & Label Function',
+        requirementClue: 'Run lightweight single-purpose event handlers generating shipping receipts on each `OrderShipped` message.',
+        acceptedServiceIds: ['cloud-run-functions', 'cloud-run'],
+        recommendedShield: 'iam-least-privilege',
+        antiPatternHints: {
+          'gke-autopilot': 'Provisioning a Kubernetes cluster for a 40-line receipt event handler violates serverless simplicity.',
+        },
+        defaultAntiPatternReason: 'Single-purpose Pub/Sub event handlers fit Cloud Run Functions (or Cloud Run).',
+        architecturalRationale: 'Cloud Run Functions scale from zero on each Pub/Sub push trigger with minimal boilerplate.',
+      },
+      {
+        id: 'live-order-db',
+        zoneId: 'state',
+        row: 1,
+        title: 'Live Mobile Order Tracker DB',
+        requirementClue: 'Push instant order-stage updates directly to customer iOS/Android apps without polling.',
+        acceptedServiceIds: ['firestore-db'],
+        recommendedShield: 'kms-secret-manager',
+        antiPatternHints: {
+          'bigquery-dw': 'Mobile apps should never poll an OLAP data warehouse for live order status.',
+        },
+        defaultAntiPatternReason: 'Real-time mobile client state listeners with offline support require Firestore.',
+        architecturalRationale: 'Firestore streams live document snapshots directly to authenticated mobile clients.',
+      },
+    ],
+    edges: [
+      { id: 'e1', fromSlotId: 'checkout-api', toSlotId: 'saga-orchestrator', protocolLabel: 'POST /orders' },
+      { id: 'e2', fromSlotId: 'saga-orchestrator', toSlotId: 'domain-events', protocolLabel: 'Publish Event' },
+      { id: 'e3', fromSlotId: 'domain-events', toSlotId: 'webhook-worker', protocolLabel: 'Pub/Sub Push' },
+      { id: 'e4', fromSlotId: 'saga-orchestrator', toSlotId: 'live-order-db', protocolLabel: 'ACID Step Update' },
+    ],
+    distractorServiceIds: ['dataflow-beam', 'gke-autopilot', 'bigquery-dw', 'memorystore-redis'],
+    solutionSummary:
+      'Apigee fronts Cloud Workflows for stateful payment/inventory sagas, writing live mobile status to Firestore while fanning out domain events over Pub/Sub to Cloud Run Functions.',
+  },
+];
