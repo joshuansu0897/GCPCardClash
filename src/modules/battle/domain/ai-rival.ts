@@ -53,7 +53,7 @@ function performRivalPrimaryMove(
 ): MatchState {
   const vulnerableSlot = state.turn >= 3 ? findUnshieldedPlayerSlot(state, blueprint) : undefined;
   if (vulnerableSlot !== undefined && state.rivalEnergy >= 3) {
-    return captureUnshieldedPlayerSlot(state, blueprint, vulnerableSlot, cardsById);
+    return captureUnshieldedPlayerSlot(state, vulnerableSlot, cardsById);
   }
 
   const openSlot = blueprint.slots.find((slot) => state.slots[slot.id]?.owner === null);
@@ -90,7 +90,6 @@ function resolvePrimaryService(
 
 function captureUnshieldedPlayerSlot(
   state: MatchState,
-  blueprint: ArchitectureBlueprint,
   slot: ArchitectureSlot,
   cardsById: Readonly<Record<string, CatalogCard>>,
 ): MatchState {

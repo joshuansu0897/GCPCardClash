@@ -107,7 +107,7 @@ export function applyEnergyCard(
 }
 
 export function applyServiceDeployment(input: ServiceDeployInput): MatchState {
-  const { state, blueprint, handItem, card, slotId } = input;
+  const { state, blueprint, card, slotId } = input;
   const specSlot = blueprint.slots.find((s) => s.id === slotId);
   const slotState = state.slots[slotId];
 

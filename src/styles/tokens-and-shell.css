@@ -1,0 +1,309 @@
+/* Systems Flight-Plan & Block-Diagram Playboard — Tokens, Reset & Flight Header */
+
+:root {
+  --color-paper-bg: #f5f2ea;
+  --color-paper-sheet: #fcfbf7;
+  --color-paper-recess: #ece7da;
+  --color-carbon-ink: #16191d;
+  --color-flap-cell: #232830;
+  --color-slate-ink: #464d57;
+  --color-graphite-rule: #c9c3b5;
+  --color-graphite-strong: #8f8878;
+
+  --color-ink-compute: #1a56db;
+  --color-tint-compute: #ebf1fd;
+  --color-ink-data: #0e7490;
+  --color-tint-data: #e6f4f7;
+  --color-ink-edge: #b45309;
+  --color-tint-edge: #fef3e6;
+  --color-ink-shield: #b91c1c;
+  --color-tint-shield: #fdecec;
+  --color-ink-ai: #15803d;
+  --color-tint-ai: #eaf6ee;
+
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.3125rem;
+  --text-xl: 1.5rem;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  --ease-snappy: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: light;
+  scrollbar-color: var(--color-graphite-strong) var(--color-paper-recess);
+  caret-color: var(--color-ink-compute);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+::selection {
+  background-color: var(--color-ink-compute);
+  color: var(--color-paper-sheet);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink-compute);
+  outline-offset: 2px;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-paper-bg);
+  color: var(--color-carbon-ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+/* Workbench Grid Shell */
+.workbench-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+}
+
+/* Carbon-Ink Flight-Plan Header */
+.flight-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--color-carbon-ink);
+  color: var(--color-paper-bg);
+  border-bottom: 1px solid #0b0d10;
+}
+
+.flight-brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.brand-emblem {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background-color: var(--color-ink-compute);
+  color: var(--color-paper-sheet);
+  border-radius: var(--radius-sm);
+}
+
+.brand-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.brand-title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-paper-sheet);
+}
+
+.rank-stamp {
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: #e2e8f0;
+  background-color: var(--color-flap-cell);
+  border: 1px solid #38414d;
+  border-radius: var(--radius-xs);
+}
+
+/* Split-Flap Telemetry Strip */
+.flight-telemetry-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.flap-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.flap-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #aeb7c4;
+}
+
+.flap-cells {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.flap-digit {
+  display: inline-grid;
+  place-items: center;
+  width: 21px;
+  height: 27px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  background-color: var(--color-flap-cell);
+  color: var(--color-paper-sheet);
+  border: 1px solid #38414d;
+  border-radius: var(--radius-xs);
+}
+
+.flap-tone-player .flap-digit {
+  border-color: #3b76f6;
+  color: #ebf1fd;
+}
+
+.flap-tone-rival .flap-digit {
+  border-color: #dc2626;
+  color: #fdecec;
+}
+
+/* Physical Turn Energy Capacitor Gauge */
+.energy-gauge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 8px;
+  background-color: var(--color-flap-cell);
+  border: 1px solid #38414d;
+  border-radius: var(--radius-sm);
+}
+
+.capacitor-bars {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.capacitor-cell {
+  width: 9px;
+  height: 16px;
+  background-color: #0b0d10;
+  border: 1px solid #38414d;
+  border-radius: var(--radius-xs);
+}
+
+.capacitor-cell.is-charged {
+  background-color: #f59e0b;
+  border-color: #fcd38d;
+}
+
+/* Header Controls */
+.flight-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mode-switch {
+  display: inline-flex;
+  background-color: var(--color-flap-cell);
+  border: 1px solid #38414d;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.mode-btn {
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+}
+
+.mode-btn.is-active {
+  background-color: var(--color-paper-sheet);
+  color: var(--color-carbon-ink);
+}
+
+.rail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-paper-bg);
+  background-color: var(--color-flap-cell);
+  border: 1px solid #38414d;
+  border-radius: var(--radius-sm);
+}
+
+.rail-btn:hover {
+  background-color: #38414d;
+}
+
+/* Main Stage Split */
+.workbench-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  align-items: start;
+}
+
+/* Subsystem Ink Utility Surfaces */
+.ink-bg-compute { background-color: var(--color-ink-compute); }
+.ink-bg-data { background-color: var(--color-ink-data); }
+.ink-bg-edge { background-color: var(--color-ink-edge); }
+.ink-bg-shield { background-color: var(--color-ink-shield); }
+.ink-bg-ai { background-color: var(--color-ink-ai); }
+
+.ink-chip-compute { background-color: var(--color-tint-compute); color: var(--color-ink-compute); border-color: #bdd3fd; }
+.ink-chip-data { background-color: var(--color-tint-data); color: var(--color-ink-data); border-color: #a3ddeb; }
+.ink-chip-edge { background-color: var(--color-tint-edge); color: var(--color-ink-edge); border-color: #fcd38d; }
+.ink-chip-shield { background-color: var(--color-tint-shield); color: var(--color-ink-shield); border-color: #f7b4b4; }
+.ink-chip-ai { background-color: var(--color-tint-ai); color: var(--color-ink-ai); border-color: #a6e1bb; }
+
+@media (max-width: 1080px) {
+  .workbench-stage {
+    grid-template-columns: 1fr;
+  }
+}
