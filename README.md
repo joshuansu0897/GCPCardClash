@@ -30,9 +30,3 @@ npm test           # Run Vitest unit & integration test suite
 npm run typecheck  # Strict TypeScript verification
 npm run build      # Production static bundle (Firebase Hosting / Cloud Storage ready)
 ```
-
-
-# Local AGY
-```
-agy --conversation=a589d8a0-12ef-4759-a30b-c1a4eec0f011
-```
