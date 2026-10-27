@@ -7,6 +7,7 @@ import { type JSX, useRef } from 'react';
 import { type MatchOutcome, type MatchState, type RivalPersona, resolveRivalForTrack } from '../../battle';
 import type { ArchitectureBlueprint } from '../../catalog';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
+import { DocSourceLinks } from './doc-source-links';
 import { StarRatingRow } from './scenario-dialog';
 import type { PlayMode } from './use-arena-controller';
 import { useNativeModalDialog } from './use-modal-dialog';
@@ -101,6 +102,8 @@ function DebriefMetricsBody(props: {
       <div className="solution-synthesis-box">
         <h3 className="synthesis-heading">Reference Solution Synthesis</h3>
         <p className="synthesis-copy">{blueprint.solutionSummary}</p>
+        <h4 className="synthesis-sources-heading">Sources (official Google Cloud docs)</h4>
+        <DocSourceLinks references={blueprint.references} />
       </div>
 
       <DebriefActionsRow rivalName={rival.name} onReplay={onReplay} onOpenCatalog={onOpenCatalog} />
@@ -198,7 +201,7 @@ function ManualRulesList(): JSX.Element {
         <strong>7. Cloud Incidents:</strong> Every 3 turns (every 2 on Professional and Specialist blueprints) an incident strikes BOTH architects and plays out on the board — meteor showers knock out a zone, scanner ships sweep your nodes, credits rain down, lightning hits the AI tier. Some bend the rules for that turn only.
       </li>
       <li>
-        <strong>8. Track Bosses:</strong> Each track has its own world and one boss — The Monolith guards Foundations, the Shadow Admin stalks Global & Hybrid, the Data Swamp floods Serverless & Data, and the Hallucinator warps Vertex AI. Every boss follows your rules and mixes its signature incident into every second strike. On Associate blueprints it plays gently; on Professional and Specialist blueprints it chains moves and captures from Turn 2.
+        <strong>8. Track Bosses:</strong> Each track has its own world and one boss — The Monolith guards Foundations, the Shadow Admin stalks Global & Hybrid, the Data Swamp floods Serverless & Data, and the Hallucinator warps Agent Platform & GenAI. Every boss follows your rules and mixes its signature incident into every second strike. On Associate blueprints it plays gently; on Professional and Specialist blueprints it chains moves and captures from Turn 2.
       </li>
     </ol>
   );

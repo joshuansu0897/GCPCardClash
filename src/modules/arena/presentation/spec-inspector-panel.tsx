@@ -7,6 +7,7 @@ import type { JSX } from 'react';
 import type { ArenaMode, SlotDeployment, TurnLogEntry } from '../../battle';
 import type { ArchitectureSlot, CatalogCard } from '../../catalog';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
+import { DocSourceLinks } from './doc-source-links';
 
 export interface SpecInspectorPanelProps {
   readonly mode: ArenaMode;
@@ -108,6 +109,12 @@ function CardSpecSheet(props: { readonly card: CatalogCard }): JSX.Element {
         <div>
           <dt>GCP Exam Signal</dt>
           <dd>{card.examTip}</dd>
+        </div>
+        <div>
+          <dt>Official Docs</dt>
+          <dd>
+            <DocSourceLinks references={card.references} />
+          </dd>
         </div>
       </dl>
     </div>
