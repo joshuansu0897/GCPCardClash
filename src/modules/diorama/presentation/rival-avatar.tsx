@@ -27,23 +27,8 @@ export interface RivalAvatarProps {
 export function RivalAvatar(props: RivalAvatarProps): JSX.Element {
   const rootRef = useRef<Group>(null);
   const glowRef = useRef<MeshStandardMaterial>(null);
-  const scale = props.isBoss ? 1.55 : 1;
 
-  useFrame(({ clock }) => {
-    const root = rootRef.current;
-    if (root === null) {
-      return;
-    }
-    const lunge = props.reducedMotion ? 0 : rivalLungeStrength(props.effects);
-    const t = clock.elapsedTime;
-    const bob = props.reducedMotion ? 0 : Math.sin(t * 1.3) * 0.18;
-    root.position.set(props.position[0], props.position[1] + bob - (props.isBoss ? 0.55 : 0), props.position[2] + lunge * 1.4);
-    root.rotation.set(-0.12 - lunge * 0.25, props.reducedMotion ? 0 : Math.sin(t * 0.5) * 0.18, 0);
-    root.scale.setScalar(scale * (1 + lunge * 0.12));
-    if (glowRef.current !== null) {
-      glowRef.current.emissiveIntensity = 1.1 + lunge * 2.5 + (props.reducedMotion ? 0 : Math.sin(t * 3) * 0.25);
-    }
-  });
+  useFrame(({ clock }) => poseRival(rootRef.current, glowRef.current, props, clock.elapsedTime));
 
   return (
     <group ref={rootRef} position={props.position as [number, number, number]}>
@@ -54,6 +39,30 @@ export function RivalAvatar(props: RivalAvatarProps): JSX.Element {
       )}
     </group>
   );
+}
+
+/** Idle bob and sway, plus the lunge toward the island when the Rival lands a card. */
+function poseRival(
+  root: Group | null,
+  glow: MeshStandardMaterial | null,
+  props: RivalAvatarProps,
+  t: number,
+): void {
+  if (root === null) {
+    return;
+  }
+  const sway = props.reducedMotion ? 0 : 1;
+  const lunge = props.reducedMotion ? 0 : rivalLungeStrength(props.effects);
+  const scale = props.isBoss ? 1.55 : 1;
+  const sink = props.isBoss ? 0.55 : 0;
+  const bob = Math.sin(t * 1.3) * 0.18 * sway;
+
+  root.position.set(props.position[0], props.position[1] + bob - sink, props.position[2] + lunge * 1.4);
+  root.rotation.set(-0.12 - lunge * 0.25, Math.sin(t * 0.5) * 0.18 * sway, 0);
+  root.scale.setScalar(scale * (1 + lunge * 0.12));
+  if (glow !== null) {
+    glow.emissiveIntensity = 1.1 + lunge * 2.5 + Math.sin(t * 3) * 0.25 * sway;
+  }
 }
 
 /** 0 → 1 → 0 pulse after each Rival deploy or capture. */

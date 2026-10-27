@@ -51,30 +51,22 @@ export function diffBoardEvents(previous: MatchState | null, next: MatchState): 
     return [{ id: `${stamp}:reset`, type: 'board-reset' }];
   }
 
-  const events: BoardEvent[] = [];
+  return [
+    ...diffSlotEvents(previous, next, stamp),
+    ...diffIncidentEvents(previous, next, stamp),
+    ...diffTurnEvents(previous, next, stamp),
+  ];
+}
 
+type SlotSnapshot = MatchState['slots'][string];
+
+function diffSlotEvents(previous: MatchState, next: MatchState, stamp: string): BoardEvent[] {
+  const events: BoardEvent[] = [];
   for (const [slotId, after] of Object.entries(next.slots)) {
     const before = previous.slots[slotId];
-    if (after.owner !== null && after.serviceCardId !== null && after.serviceCardId !== before?.serviceCardId) {
-      const previousOwner = before?.owner ?? null;
-      events.push(
-        previousOwner !== null && previousOwner !== after.owner
-          ? {
-              id: `${stamp}:capture:${slotId}`,
-              type: 'slot-captured',
-              slotId,
-              owner: after.owner,
-              previousOwner,
-              cardId: after.serviceCardId,
-            }
-          : {
-              id: `${stamp}:deploy:${slotId}`,
-              type: 'card-deployed',
-              slotId,
-              owner: after.owner,
-              cardId: after.serviceCardId,
-            },
-      );
+    const placed = placementEvent(slotId, before, after, stamp);
+    if (placed !== null) {
+      events.push(placed);
     }
     if (after.owner !== null && after.shieldCardId !== null && before?.shieldCardId == null) {
       events.push({
@@ -86,24 +78,56 @@ export function diffBoardEvents(previous: MatchState | null, next: MatchState): 
       });
     }
   }
+  return events;
+}
 
-  if (next.incident !== null && !isSameIncident(previous, next)) {
-    events.push({
-      id: `${stamp}:incident:${next.incident.incidentId}`,
-      type: 'incident-struck',
-      incidentId: next.incident.incidentId,
-      affectedZoneId: next.incident.affectedZoneId,
-      struckSlotIds: Object.keys(next.slots).filter((slotId) => {
-        const before = previous.slots[slotId];
-        const after = next.slots[slotId];
-        return (
-          (before?.owner != null && after?.owner == null) ||
-          (before?.shieldCardId != null && after?.shieldCardId == null && after?.owner === before.owner)
-        );
-      }),
-    });
+function placementEvent(
+  slotId: string,
+  before: SlotSnapshot | undefined,
+  after: SlotSnapshot,
+  stamp: string,
+): BoardEvent | null {
+  if (after.owner === null || after.serviceCardId === null || after.serviceCardId === before?.serviceCardId) {
+    return null;
   }
 
+  const previousOwner = before?.owner ?? null;
+  if (previousOwner !== null && previousOwner !== after.owner) {
+    return {
+      id: `${stamp}:capture:${slotId}`,
+      type: 'slot-captured',
+      slotId,
+      owner: after.owner,
+      previousOwner,
+      cardId: after.serviceCardId,
+    };
+  }
+  return { id: `${stamp}:deploy:${slotId}`, type: 'card-deployed', slotId, owner: after.owner, cardId: after.serviceCardId };
+}
+
+function diffIncidentEvents(previous: MatchState, next: MatchState, stamp: string): BoardEvent[] {
+  if (next.incident === null || isSameIncident(previous, next)) {
+    return [];
+  }
+  return [{
+    id: `${stamp}:incident:${next.incident.incidentId}`,
+    type: 'incident-struck',
+    incidentId: next.incident.incidentId,
+    affectedZoneId: next.incident.affectedZoneId,
+    struckSlotIds: Object.keys(next.slots).filter((slotId) => wasStruck(previous.slots[slotId], next.slots[slotId])),
+  }];
+}
+
+/** A pad an incident knocked offline, or stripped of its shield while leaving the owner in place. */
+function wasStruck(before: SlotSnapshot | undefined, after: SlotSnapshot | undefined): boolean {
+  if (before?.owner != null && after?.owner == null) {
+    return true;
+  }
+  return before?.shieldCardId != null && after?.shieldCardId == null && after?.owner === before.owner;
+}
+
+function diffTurnEvents(previous: MatchState, next: MatchState, stamp: string): BoardEvent[] {
+  const events: BoardEvent[] = [];
   if (next.turn === previous.turn && next.playerEnergy > previous.playerEnergy) {
     events.push({ id: `${stamp}:energy`, type: 'energy-gained', amount: next.playerEnergy - previous.playerEnergy });
   }
@@ -116,7 +140,6 @@ export function diffBoardEvents(previous: MatchState | null, next: MatchState): 
   if (previous.status !== 'completed' && next.status === 'completed' && next.outcome !== null) {
     events.push({ id: `${stamp}:complete`, type: 'match-completed', winner: next.outcome.winner });
   }
-
   return events;
 }
 

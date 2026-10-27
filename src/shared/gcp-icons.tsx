@@ -85,45 +85,41 @@ function renderIconPaths(name: TechnicalIconName): JSX.Element {
   }
 }
 
+/** Utility glyphs drawn purely from stroked paths. */
+const UTILITY_STROKES: Partial<Record<TechnicalIconName, readonly string[]>> = {
+  book: [
+    'M3 4.5h5.5a2 2 0 0 1 2 2v10a1.5 1.5 0 0 0-1.5-1.5H3v-10.5z',
+    'M17 4.5h-5.5a2 2 0 0 0-2 2v10a1.5 1.5 0 0 1 1.5-1.5H17v-10.5z',
+  ],
+  alert: ['M10 3L2.2 16.5h15.6L10 3z', 'M10 8.2v3.8M10 14.4h.01'],
+  check: ['M4 10.5l4 4 8-8.5'],
+  'arrow-right': ['M4 10h12M11.5 5.5L16 10l-4.5 4.5'],
+  refresh: ['M16.5 5.5v4h-4', 'M16 9.5a6.5 6.5 0 1 0 1.2 4.5'],
+  crown: ['M3 7l3.5 3L10 4.5 13.5 10 17 7l-1.5 8h-11L3 7z', 'M4.5 17.5h11'],
+  discard: [
+    'M3.5 5.5h13M8 5.5V4h4v1.5',
+    'M5 5.5l.9 11a1.5 1.5 0 0 0 1.5 1.4h5.2a1.5 1.5 0 0 0 1.5-1.4l.9-11M8.3 8.5v6M11.7 8.5v6',
+  ],
+};
+
 function renderUtilityPaths(name: TechnicalIconName): JSX.Element {
+  const strokes = UTILITY_STROKES[name];
+  if (strokes !== undefined) {
+    return (
+      <>
+        {strokes.map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </>
+    );
+  }
+
   switch (name) {
     case 'blueprint':
       return (
         <>
           <rect x="2.5" y="3.5" width="15" height="13" rx="1.5" />
           <path d="M7.5 3.5v13M2.5 9.5h15" />
-        </>
-      );
-    case 'book':
-      return (
-        <>
-          <path d="M3 4.5h5.5a2 2 0 0 1 2 2v10a1.5 1.5 0 0 0-1.5-1.5H3v-10.5z" />
-          <path d="M17 4.5h-5.5a2 2 0 0 0-2 2v10a1.5 1.5 0 0 1 1.5-1.5H17v-10.5z" />
-        </>
-      );
-    case 'alert':
-      return (
-        <>
-          <path d="M10 3L2.2 16.5h15.6L10 3z" />
-          <path d="M10 8.2v3.8M10 14.4h.01" />
-        </>
-      );
-    case 'check':
-      return <path d="M4 10.5l4 4 8-8.5" />;
-    case 'arrow-right':
-      return <path d="M4 10h12M11.5 5.5L16 10l-4.5 4.5" />;
-    case 'refresh':
-      return (
-        <>
-          <path d="M16.5 5.5v4h-4" />
-          <path d="M16 9.5a6.5 6.5 0 1 0 1.2 4.5" />
-        </>
-      );
-    case 'crown':
-      return (
-        <>
-          <path d="M3 7l3.5 3L10 4.5 13.5 10 17 7l-1.5 8h-11L3 7z" />
-          <path d="M4.5 17.5h11" />
         </>
       );
     case 'lock':
@@ -138,13 +134,6 @@ function renderUtilityPaths(name: TechnicalIconName): JSX.Element {
         <>
           <rect x="7" y="3" width="9" height="12.5" rx="1.5" />
           <path d="M5 5.5l-1.3.4a1.5 1.5 0 0 0-1 1.8l2.6 9.4a1.5 1.5 0 0 0 1.8 1l5.2-1.4" />
-        </>
-      );
-    case 'discard':
-      return (
-        <>
-          <path d="M3.5 5.5h13M8 5.5V4h4v1.5" />
-          <path d="M5 5.5l.9 11a1.5 1.5 0 0 0 1.5 1.4h5.2a1.5 1.5 0 0 0 1.5-1.4l.9-11M8.3 8.5v6M11.7 8.5v6" />
         </>
       );
     default:

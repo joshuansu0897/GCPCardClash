@@ -37,11 +37,9 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
     props.rivalStepDelayMs ?? 0,
     props.nextMatchSeed ?? FIXED_MATCH_SEED,
   );
-  const { matchState, activeBlueprint, curriculum } = ctrl;
+  const { matchState, activeBlueprint } = ctrl;
   const has3d = props.boardRenderer3d !== undefined;
   const [boardView, setBoardView] = useState<BoardView>(has3d ? '3d' : '2d');
-  const activeIncident = matchState.incident !== null ? (getIncidentCard(matchState.incident.incidentId) ?? null) : null;
-  const affectedZoneId = matchState.incident?.affectedZoneId ?? null;
 
   return (
     <div className={`workbench-shell track-${activeBlueprint.trackId} ${ctrl.playMode === 'boss' ? 'is-boss-battle' : ''}`}>
@@ -50,54 +48,13 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
         boardView={has3d ? boardView : null}
         onChangeBoardView={setBoardView}
       />
-
-      <main className="workbench-stage">
-        <div className="arena-main-column">
-          <RivalDock matchState={matchState} rival={ctrl.rival} isActing={ctrl.rivalActing} />
-          <IncidentTicker
-            incident={activeIncident}
-            zoneLabel={activeBlueprint.zones.find((z) => z.id === affectedZoneId)?.label ?? null}
-            turnsUntilNext={turnsUntilNextIncident(matchState)}
-          />
-          <BoardViewSwitch
-            view={boardView}
-            renderer3d={props.boardRenderer3d}
-            onRendererFailed={() => setBoardView('2d')}
-            blueprint={activeBlueprint}
-            matchState={matchState}
-            cardsById={curriculum.cardsById}
-            selectedHandCard={ctrl.selectedCard}
-            inspectedSlotId={ctrl.inspectedSlotId}
-            onInspectSlot={ctrl.handleInspectSlot}
-            onTargetSlot={ctrl.handleTargetSlot}
-          />
-        </div>
-
-        <SpecInspectorPanel
-          mode={matchState.mode}
-          inspectedCard={ctrl.selectedCard}
-          inspectedSlot={ctrl.inspectedSlot}
-          inspectedSlotState={
-            ctrl.inspectedSlotId !== null ? matchState.slots[ctrl.inspectedSlotId] : undefined
-          }
-          cardsById={curriculum.cardsById}
-          logs={matchState.logs}
-        />
-      </main>
-
-      <HandDock
-        hand={matchState.hand}
-        drawPileCount={matchState.drawPile.length}
-        discardPileCount={matchState.discardPile.length}
-        cardsById={curriculum.cardsById}
-        selectedInstanceId={ctrl.selectedInstanceId}
-        playerEnergy={matchState.playerEnergy}
-        isMatchCompleted={matchState.status === 'completed'}
-        isLocked={ctrl.rivalActing}
-        onSelectOrPlayCard={ctrl.handleCardClick}
-        onDiscardCard={ctrl.handleDiscardCard}
-        onEndTurn={ctrl.handleEndTurn}
+      <ArenaStage
+        ctrl={ctrl}
+        boardView={boardView}
+        renderer3d={props.boardRenderer3d}
+        onRendererFailed={() => setBoardView('2d')}
       />
+      <ArenaHand ctrl={ctrl} />
 
       <TurnPhaseBanner
         turn={matchState.turn}
@@ -108,6 +65,75 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
       <IncidentAnnouncement incident={ctrl.announcedIncident} boss={ctrl.boss} onDismiss={ctrl.dismissIncident} />
       <ArenaDialogs ctrl={ctrl} />
     </div>
+  );
+}
+
+function ArenaStage(props: {
+  readonly ctrl: ArenaControllerState;
+  readonly boardView: BoardView;
+  readonly renderer3d: ComponentType<BoardRendererProps> | undefined;
+  readonly onRendererFailed: () => void;
+}): JSX.Element {
+  const { ctrl } = props;
+  const { matchState, activeBlueprint, curriculum } = ctrl;
+  const activeIncident = matchState.incident !== null ? (getIncidentCard(matchState.incident.incidentId) ?? null) : null;
+  const affectedZoneId = matchState.incident?.affectedZoneId ?? null;
+
+  return (
+    <main className="workbench-stage">
+      <div className="arena-main-column">
+        <RivalDock matchState={matchState} rival={ctrl.rival} isActing={ctrl.rivalActing} />
+        <IncidentTicker
+          incident={activeIncident}
+          zoneLabel={activeBlueprint.zones.find((z) => z.id === affectedZoneId)?.label ?? null}
+          turnsUntilNext={turnsUntilNextIncident(matchState)}
+        />
+        <BoardViewSwitch
+          view={props.boardView}
+          renderer3d={props.renderer3d}
+          onRendererFailed={props.onRendererFailed}
+          blueprint={activeBlueprint}
+          matchState={matchState}
+          cardsById={curriculum.cardsById}
+          selectedHandCard={ctrl.selectedCard}
+          inspectedSlotId={ctrl.inspectedSlotId}
+          onInspectSlot={ctrl.handleInspectSlot}
+          onTargetSlot={ctrl.handleTargetSlot}
+        />
+      </div>
+
+      <SpecInspectorPanel
+        mode={matchState.mode}
+        inspectedCard={ctrl.selectedCard}
+        inspectedSlot={ctrl.inspectedSlot}
+        inspectedSlotState={
+          ctrl.inspectedSlotId !== null ? matchState.slots[ctrl.inspectedSlotId] : undefined
+        }
+        cardsById={curriculum.cardsById}
+        logs={matchState.logs}
+      />
+    </main>
+  );
+}
+
+function ArenaHand(props: { readonly ctrl: ArenaControllerState }): JSX.Element {
+  const { ctrl } = props;
+  const { matchState } = ctrl;
+
+  return (
+    <HandDock
+      hand={matchState.hand}
+      drawPileCount={matchState.drawPile.length}
+      discardPileCount={matchState.discardPile.length}
+      cardsById={ctrl.curriculum.cardsById}
+      selectedInstanceId={ctrl.selectedInstanceId}
+      playerEnergy={matchState.playerEnergy}
+      isMatchCompleted={matchState.status === 'completed'}
+      isLocked={ctrl.rivalActing}
+      onSelectOrPlayCard={ctrl.handleCardClick}
+      onDiscardCard={ctrl.handleDiscardCard}
+      onEndTurn={ctrl.handleEndTurn}
+    />
   );
 }
 

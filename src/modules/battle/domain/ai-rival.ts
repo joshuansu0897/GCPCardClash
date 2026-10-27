@@ -8,7 +8,7 @@
  * - `boss` chains several moves, captures from Turn 2, and picks the highest-value target.
  */
 
-import type { ArchitectureBlueprint, CatalogCard, ServiceCard, ShieldCard } from '../../catalog';
+import type { ArchitectureBlueprint, ArchitectureSlot, CatalogCard, ServiceCard, ShieldCard } from '../../catalog';
 import { readSide, writeSide } from './architect-side';
 import { incidentDeployBonus, quoteServiceCost, quoteShieldCost } from './cost-rules';
 import { drawUpToHandLimit } from './deck-rules';
@@ -153,12 +153,20 @@ interface DeployCandidate {
   readonly isCapture: boolean;
 }
 
+/** The board the Rival is weighing a move on, and how it plays. */
+interface RivalOutlook {
+  readonly state: MatchState;
+  readonly blueprint: ArchitectureBlueprint;
+  readonly tactics: RivalTactics;
+}
+
 function pickDeploy(
   state: MatchState,
   blueprint: ArchitectureBlueprint,
   held: readonly HeldCard<CatalogCard>[],
   tactics: RivalTactics,
 ): CardAction | null {
+  const outlook: RivalOutlook = { state, blueprint, tactics };
   const candidates: DeployCandidate[] = [];
 
   for (const { item, card } of held) {
@@ -166,7 +174,7 @@ function pickDeploy(
       continue;
     }
     for (const slot of blueprint.slots) {
-      const candidate = evaluateDeploy(state, blueprint, item, card, slot.id, slot.acceptedServiceIds, tactics);
+      const candidate = evaluateDeploy(outlook, item, card, slot);
       if (candidate !== null) {
         candidates.push(candidate);
       }
@@ -183,18 +191,16 @@ function pickDeploy(
 }
 
 function evaluateDeploy(
-  state: MatchState,
-  blueprint: ArchitectureBlueprint,
+  outlook: RivalOutlook,
   item: HandCardInstance,
   card: ServiceCard,
-  slotId: string,
-  accepted: readonly string[],
-  tactics: RivalTactics,
+  slot: ArchitectureSlot,
 ): DeployCandidate | null {
-  if (!accepted.includes(card.id)) {
+  const { state, blueprint, tactics } = outlook;
+  if (!slot.acceptedServiceIds.includes(card.id)) {
     return null;
   }
-  const slotState = state.slots[slotId];
+  const slotState = state.slots[slot.id];
   const cost = quoteServiceCost(state, 'rival', card, slotState);
   if (cost === null || cost > state.rivalEnergy) {
     return null;
@@ -204,17 +210,22 @@ function evaluateDeploy(
     return null;
   }
 
-  const ownSynergy = countConnectedOwnedNeighbors(blueprint, state.slots, slotId, 'rival') * FLOW_SYNERGY_BONUS;
+  const ownSynergy = countConnectedOwnedNeighbors(blueprint, state.slots, slot.id, 'rival') * FLOW_SYNERGY_BONUS;
   const brokenPlayerSynergy = isCapture
-    ? countConnectedOwnedNeighbors(blueprint, state.slots, slotId, 'player') * FLOW_SYNERGY_BONUS
+    ? countConnectedOwnedNeighbors(blueprint, state.slots, slot.id, 'player') * FLOW_SYNERGY_BONUS
     : 0;
   const value =
     card.basePoints +
     ownSynergy +
-    incidentDeployBonus(state, blueprint, slotId) +
+    incidentDeployBonus(state, blueprint, slot.id) +
     (isCapture ? CAPTURE_SWING_BONUS + CAPTURE_VICTIM_LOSS + brokenPlayerSynergy : 0);
 
-  return { instanceId: item.instanceId, slotId, cost, value, isCapture };
+  return { instanceId: item.instanceId, slotId: slot.id, cost, value, isCapture };
+}
+
+interface ShieldChoice {
+  readonly action: CardAction;
+  readonly value: number;
 }
 
 function pickShield(
@@ -223,31 +234,48 @@ function pickShield(
   held: readonly HeldCard<CatalogCard>[],
   tactics: RivalTactics,
 ): CardAction | null {
+  const outlook: RivalOutlook = { state, blueprint, tactics };
   const shields = held.filter((h): h is HeldCard<ShieldCard> => h.card.kind === 'shield');
-  let best: { readonly action: CardAction; readonly value: number } | null = null;
+  let best: ShieldChoice | null = null;
 
   for (const slot of blueprint.slots) {
-    const deployed = state.slots[slot.id];
-    if (deployed?.owner !== 'rival' || deployed.shieldCardId !== null) {
-      continue;
+    const slotBest = bestShieldForSlot(outlook, slot, shields);
+    if (slotBest !== null && (best === null || slotBest.value > best.value)) {
+      best = slotBest;
     }
-    for (const { item, card } of shields) {
-      if (quoteShieldCost(state, card) > state.rivalEnergy) {
-        continue;
-      }
-      const matched = card.capability === slot.recommendedShield;
-      const connections = countConnectedOwnedNeighbors(blueprint, state.slots, slot.id, 'rival');
-      const value = (matched ? 100 : 0) + (tactics.optimize ? connections * 10 : 0);
-      if (best === null || value > best.value) {
-        best = { action: { type: 'apply-shield', instanceId: item.instanceId, slotId: slot.id }, value };
-      }
-    }
+    // WHY: a standard Rival shields the first node it can, in blueprint order
     if (!tactics.optimize && best !== null) {
       break;
     }
   }
 
   return best?.action ?? null;
+}
+
+function bestShieldForSlot(
+  outlook: RivalOutlook,
+  slot: ArchitectureSlot,
+  shields: readonly HeldCard<ShieldCard>[],
+): ShieldChoice | null {
+  const { state, blueprint, tactics } = outlook;
+  const deployed = state.slots[slot.id];
+  if (deployed?.owner !== 'rival' || deployed.shieldCardId !== null) {
+    return null;
+  }
+
+  const connections = countConnectedOwnedNeighbors(blueprint, state.slots, slot.id, 'rival');
+  let best: ShieldChoice | null = null;
+  for (const { item, card } of shields) {
+    if (quoteShieldCost(state, card) > state.rivalEnergy) {
+      continue;
+    }
+    const matched = card.capability === slot.recommendedShield;
+    const value = (matched ? 100 : 0) + (tactics.optimize ? connections * 10 : 0);
+    if (best === null || value > best.value) {
+      best = { action: { type: 'apply-shield', instanceId: item.instanceId, slotId: slot.id }, value };
+    }
+  }
+  return best;
 }
 
 /** A card the Rival cannot use on this board right now — the one worth discarding. */

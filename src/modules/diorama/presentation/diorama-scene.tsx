@@ -9,7 +9,7 @@ import { type JSX, type ReactNode, useEffect, useRef } from 'react';
 import { type Group, MathUtils, PerspectiveCamera, Vector3 } from 'three';
 
 import { type MatchState, getIncidentCard } from '../../battle';
-import type { ArchitectureBlueprint, CatalogCard } from '../../catalog';
+import type { ArchitectureBlueprint, ArchitectureSlot, CatalogCard } from '../../catalog';
 import type { IslandLayout } from '../domain/board-layout';
 import type { TrackTheme } from '../domain/track-theme';
 import { resolvePadAffordance } from '../domain/pad-affordance';
@@ -53,20 +53,7 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
 
   return (
     <>
-      <hemisphereLight args={[theme.hemisphereSky, theme.hemisphereGround, 0.85]} />
-      <ambientLight intensity={0.25} />
-      <directionalLight
-        color={theme.sunColor}
-        position={[9, 16, 8]}
-        intensity={theme.sunIntensity}
-        castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
-        shadow-camera-top={12}
-        shadow-camera-bottom={-12}
-        shadow-bias={-0.0004}
-      />
+      <SceneLights theme={theme} />
 
       <FittedCameraRig size={layout.islandSize} />
       <LabelProjector anchors={props.labelAnchors} registry={props.labelRegistry} />
@@ -80,28 +67,7 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
         />
         <RoadFlowPipes roads={layout.roads} slots={matchState.slots} reducedMotion={props.reducedMotion} />
 
-        {layout.pads.map((pad) => {
-          const slot = slotsById.get(pad.slotId);
-          if (slot === undefined) {
-            return null;
-          }
-          const slotState = matchState.slots[pad.slotId];
-          return (
-            <SlotPad
-              key={pad.slotId}
-              placement={pad}
-              slot={slot}
-              slotState={slotState}
-              cardsById={props.cardsById}
-              affordance={resolvePadAffordance(matchState, pad.slotId, props.selectedHandCard)}
-              isInspected={props.inspectedSlotId === pad.slotId}
-              popDelaySec={props.popDelays[pad.slotId] ?? 0}
-              reducedMotion={props.reducedMotion}
-              onInspectSlot={props.onInspectSlot}
-              onTargetSlot={props.onTargetSlot}
-            />
-          );
-        })}
+        <PadField scene={props} slotsById={slotsById} />
 
         <VfxLayer
           effects={props.effects}
@@ -123,6 +89,77 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
         />
       )}
 
+      <SceneAtmosphere theme={theme} width={width} depth={depth} reducedMotion={props.reducedMotion} />
+    </>
+  );
+}
+
+function SceneLights(props: { readonly theme: TrackTheme }): JSX.Element {
+  const { theme } = props;
+
+  return (
+    <>
+      <hemisphereLight args={[theme.hemisphereSky, theme.hemisphereGround, 0.85]} />
+      <ambientLight intensity={0.25} />
+      <directionalLight
+        color={theme.sunColor}
+        position={[9, 16, 8]}
+        intensity={theme.sunIntensity}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-left={-14}
+        shadow-camera-right={14}
+        shadow-camera-top={12}
+        shadow-camera-bottom={-12}
+        shadow-bias={-0.0004}
+      />
+    </>
+  );
+}
+
+function PadField(props: {
+  readonly scene: DioramaSceneProps;
+  readonly slotsById: ReadonlyMap<string, ArchitectureSlot>;
+}): JSX.Element {
+  const { scene, slotsById } = props;
+
+  return (
+    <>
+      {scene.layout.pads.map((pad) => {
+        const slot = slotsById.get(pad.slotId);
+        if (slot === undefined) {
+          return null;
+        }
+        return (
+          <SlotPad
+            key={pad.slotId}
+            placement={pad}
+            slot={slot}
+            slotState={scene.matchState.slots[pad.slotId]}
+            cardsById={scene.cardsById}
+            affordance={resolvePadAffordance(scene.matchState, pad.slotId, scene.selectedHandCard)}
+            isInspected={scene.inspectedSlotId === pad.slotId}
+            popDelaySec={scene.popDelays[pad.slotId] ?? 0}
+            reducedMotion={scene.reducedMotion}
+            onInspectSlot={scene.onInspectSlot}
+            onTargetSlot={scene.onTargetSlot}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function SceneAtmosphere(props: {
+  readonly theme: TrackTheme;
+  readonly width: number;
+  readonly depth: number;
+  readonly reducedMotion: boolean;
+}): JSX.Element {
+  const { theme, width, depth } = props;
+
+  return (
+    <>
       <Sparkles
         count={props.reducedMotion ? 0 : theme.ambient.count}
         scale={[width + 8, 9, depth + 8]}
@@ -158,29 +195,31 @@ function IslandRoot(props: {
       return;
     }
     const now = nowSec();
-    let shake = 0;
-    for (const { event, startsAt } of props.effects) {
-      if (event.type === 'incident-struck') {
-        const kind = getIncidentCard(event.incidentId)?.manifestation.kind;
-        const since = now - startsAt;
-        if ((kind === 'meteor-shower' || kind === 'lightning') && since > RUMBLE_WINDOW_SEC[0] && since < RUMBLE_WINDOW_SEC[1]) {
-          shake = Math.max(shake, 0.05);
-        }
-        continue;
-      }
-      if (event.type !== 'card-deployed' && event.type !== 'slot-captured') {
-        continue;
-      }
-      const sinceImpact = now - (startsAt + TOSS_DURATION_SEC);
-      if (sinceImpact >= 0 && sinceImpact < SHAKE_WINDOW_SEC) {
-        const strength = event.type === 'slot-captured' ? 0.16 : 0.07;
-        shake = Math.max(shake, strength * (1 - sinceImpact / SHAKE_WINDOW_SEC));
-      }
-    }
+    const shake = Math.max(0, ...props.effects.map((effect) => effectShake(effect, now)));
     group.position.set(shake * Math.sin(now * 90), shake * Math.cos(now * 70) * 0.5, shake * Math.cos(now * 80));
   });
 
   return <group ref={ref}>{props.children}</group>;
+}
+
+/** How hard one active effect rattles the island right now (0 when it does not). */
+function effectShake({ event, startsAt }: ActiveEffect, now: number): number {
+  if (event.type === 'incident-struck') {
+    const kind = getIncidentCard(event.incidentId)?.manifestation.kind;
+    const since = now - startsAt;
+    const rumbles = kind === 'meteor-shower' || kind === 'lightning';
+    return rumbles && since > RUMBLE_WINDOW_SEC[0] && since < RUMBLE_WINDOW_SEC[1] ? 0.05 : 0;
+  }
+  if (event.type !== 'card-deployed' && event.type !== 'slot-captured') {
+    return 0;
+  }
+
+  const sinceImpact = now - (startsAt + TOSS_DURATION_SEC);
+  if (sinceImpact < 0 || sinceImpact >= SHAKE_WINDOW_SEC) {
+    return 0;
+  }
+  const strength = event.type === 'slot-captured' ? 0.16 : 0.07;
+  return strength * (1 - sinceImpact / SHAKE_WINDOW_SEC);
 }
 
 /** Positions the camera so the whole island fits the viewport at any aspect ratio. */

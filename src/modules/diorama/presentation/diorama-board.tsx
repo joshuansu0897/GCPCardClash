@@ -12,13 +12,14 @@ import { TechnicalIcon } from '../../../shared/gcp-icons';
 import { type BoardEvent, diffBoardEvents } from '../domain/board-events';
 import { type IslandLayout, PAD_SIZE, computeIslandLayout } from '../domain/board-layout';
 import { resolvePadAffordance } from '../domain/pad-affordance';
-import { resolveTrackTheme } from '../domain/track-theme';
+import { type TrackTheme, resolveTrackTheme } from '../domain/track-theme';
 import { DioramaScene } from './diorama-scene';
 import { type LabelAnchor, PadLabel, useLabelRegistry } from './label-overlay';
 import { nowSec, usePrefersReducedMotion } from './motion';
 import { type ActiveEffect, TOSS_DURATION_SEC } from './vfx-layer';
 
 const EFFECT_STAGGER_SEC = 0.4;
+type LabelBinder = ReturnType<typeof useLabelRegistry>['bind'];
 /** The enemy hovers behind the island's far edge, above the skyline. */
 const RIVAL_HOVER_HEIGHT = 1.5;
 const RIVAL_BACKOFF = 1.9;
@@ -35,26 +36,75 @@ export interface DioramaBoardProps {
 
 export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
   const { blueprint, matchState } = props;
+  const { layout, theme, reducedMotion, effects, popDelays, dismissEffect, rivalAnchor, labelAnchors } =
+    useDioramaStage(blueprint, matchState);
+  const { registry, bind } = useLabelRegistry();
+  const hasRival = matchState.mode !== 'study';
+  const rival = resolveRivalForTrack(blueprint.trackId, matchState.rivalProfile);
+
+  return (
+    <section className="drafting-sheet diorama-sheet" aria-label="3D Architecture Diorama Playboard">
+      <DioramaTitleBar blueprint={blueprint} />
+      <DioramaGuidance selectedHandCard={props.selectedHandCard} mode={matchState.mode} />
+
+      <div className={`diorama-stage theme-${theme.trackId}`} style={themeStageStyle(theme)} data-theme-name={theme.name}>
+        <Canvas
+          shadows="percentage"
+          dpr={[1, 2]}
+          gl={{ antialias: true, alpha: true }}
+          camera={{ fov: 36, near: 0.1, far: 200, position: [0, 18, 16] }}
+        >
+          <DioramaScene
+            {...props}
+            layout={layout}
+            theme={theme}
+            rivalAnchor={hasRival ? rivalAnchor : null}
+            effects={effects}
+            popDelays={popDelays}
+            reducedMotion={reducedMotion}
+            labelAnchors={labelAnchors}
+            labelRegistry={registry}
+            onEffectDone={dismissEffect}
+          />
+        </Canvas>
+
+        <DioramaLabels board={props} layout={layout} rivalName={hasRival ? rival.name : null} bind={bind} />
+        <p className="diorama-hint" aria-hidden="true">
+          Drag to orbit · click a pad to inspect or deploy
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/** Island layout, track theme, queued VFX and label anchors for the current match. */
+function useDioramaStage(blueprint: ArchitectureBlueprint, matchState: MatchState) {
   const layout = useMemo(() => computeIslandLayout(blueprint), [blueprint]);
   const reducedMotion = usePrefersReducedMotion();
   const { effects, popDelays, dismissEffect } = useBoardEventQueue(matchState, reducedMotion);
-  const theme = resolveTrackTheme(blueprint.trackId);
-  const hasRival = matchState.mode !== 'study';
-  const rival = resolveRivalForTrack(blueprint.trackId, matchState.rivalProfile);
   const rivalAnchor = useMemo(
     () => [0, RIVAL_HOVER_HEIGHT, -layout.islandSize[1] / 2 - RIVAL_BACKOFF] as const,
     [layout],
   );
   const labelAnchors = useMemo(() => computeLabelAnchors(layout, rivalAnchor), [layout, rivalAnchor]);
-  const { registry, bind } = useLabelRegistry();
-  const stageStyle = {
+  const theme = resolveTrackTheme(blueprint.trackId);
+
+  return { layout, theme, reducedMotion, effects, popDelays, dismissEffect, rivalAnchor, labelAnchors };
+}
+
+function themeStageStyle(theme: TrackTheme): CSSProperties {
+  return {
     '--stage-sky-top': theme.skyTop,
     '--stage-sky-bottom': theme.skyBottom,
     '--stage-ink': theme.skyInk,
   } as CSSProperties;
+}
+
+function DioramaTitleBar(props: { readonly blueprint: ArchitectureBlueprint }): JSX.Element {
+  const { blueprint } = props;
 
   return (
-    <section className="drafting-sheet diorama-sheet" aria-label="3D Architecture Diorama Playboard">
+    <>
       <div className="sheet-title-bar">
         <h2 className="sheet-heading">
           {blueprint.code} · {blueprint.title}
@@ -66,69 +116,49 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
         </div>
       </div>
       <p className="workload-brief">{blueprint.workloadBrief}</p>
-      <DioramaGuidance selectedHandCard={props.selectedHandCard} mode={matchState.mode} />
+    </>
+  );
+}
 
-      <div className={`diorama-stage theme-${theme.trackId}`} style={stageStyle} data-theme-name={theme.name}>
-        <Canvas
-          shadows="percentage"
-          dpr={[1, 2]}
-          gl={{ antialias: true, alpha: true }}
-          camera={{ fov: 36, near: 0.1, far: 200, position: [0, 18, 16] }}
+function DioramaLabels(props: {
+  readonly board: DioramaBoardProps;
+  readonly layout: IslandLayout;
+  readonly rivalName: string | null;
+  readonly bind: LabelBinder;
+}): JSX.Element {
+  const { board, layout, rivalName, bind } = props;
+  const { blueprint, matchState } = board;
+
+  return (
+    <div className="diorama-labels">
+      {rivalName !== null && (
+        <span
+          ref={bind('rival')}
+          className={`rival-nameplate ${matchState.rivalProfile === 'boss' ? 'is-boss' : ''}`}
         >
-          <DioramaScene
-            blueprint={blueprint}
-            layout={layout}
-            theme={theme}
-            rivalAnchor={hasRival ? rivalAnchor : null}
-            matchState={matchState}
-            cardsById={props.cardsById}
-            selectedHandCard={props.selectedHandCard}
-            inspectedSlotId={props.inspectedSlotId}
-            effects={effects}
-            popDelays={popDelays}
-            reducedMotion={reducedMotion}
-            labelAnchors={labelAnchors}
-            labelRegistry={registry}
-            onEffectDone={dismissEffect}
-            onInspectSlot={props.onInspectSlot}
-            onTargetSlot={props.onTargetSlot}
-          />
-        </Canvas>
-
-        <div className="diorama-labels">
-          {hasRival && (
-            <span
-              ref={bind('rival')}
-              className={`rival-nameplate ${matchState.rivalProfile === 'boss' ? 'is-boss' : ''}`}
-            >
-              {rival.name}
-            </span>
-          )}
-          {layout.terraces.map((terrace) => (
-            <span key={terrace.zoneId} ref={bind(`zone:${terrace.zoneId}`)} className={`zone-flag zone-ink-${terrace.ink}`}>
-              {terrace.label}
-            </span>
-          ))}
-          {blueprint.slots.map((slot) => (
-            <PadLabel
-              key={slot.id}
-              slot={slot}
-              slotState={matchState.slots[slot.id]}
-              cardsById={props.cardsById}
-              mode={matchState.mode}
-              affordance={resolvePadAffordance(matchState, slot.id, props.selectedHandCard)}
-              isInspected={props.inspectedSlotId === slot.id}
-              bindRef={bind(`pad:${slot.id}`)}
-              onInspectSlot={props.onInspectSlot}
-              onTargetSlot={props.onTargetSlot}
-            />
-          ))}
-        </div>
-        <p className="diorama-hint" aria-hidden="true">
-          Drag to orbit · click a pad to inspect or deploy
-        </p>
-      </div>
-    </section>
+          {rivalName}
+        </span>
+      )}
+      {layout.terraces.map((terrace) => (
+        <span key={terrace.zoneId} ref={bind(`zone:${terrace.zoneId}`)} className={`zone-flag zone-ink-${terrace.ink}`}>
+          {terrace.label}
+        </span>
+      ))}
+      {blueprint.slots.map((slot) => (
+        <PadLabel
+          key={slot.id}
+          slot={slot}
+          slotState={matchState.slots[slot.id]}
+          cardsById={board.cardsById}
+          mode={matchState.mode}
+          affordance={resolvePadAffordance(matchState, slot.id, board.selectedHandCard)}
+          isInspected={board.inspectedSlotId === slot.id}
+          bindRef={bind(`pad:${slot.id}`)}
+          onInspectSlot={board.onInspectSlot}
+          onTargetSlot={board.onTargetSlot}
+        />
+      ))}
+    </div>
   );
 }
 

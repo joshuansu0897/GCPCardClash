@@ -65,33 +65,41 @@ export function RivalDock(props: RivalDockProps): JSX.Element | null {
         </span>
       </div>
 
-      <dl className="rival-stats">
-        <div>
-          <dt>Energy</dt>
-          <dd aria-label={`Rival Energy ${matchState.rivalEnergy} of ${matchState.maxEnergy}`}>
-            <span className="mini-pips" aria-hidden="true">
-              {Array.from({ length: matchState.maxEnergy }, (_, i) => (
-                <span key={i} className={i < matchState.rivalEnergy ? 'pip is-on' : 'pip'} />
-              ))}
-            </span>
-          </dd>
-        </div>
-        <div>
-          <dt>Deck</dt>
-          <dd>{matchState.rivalDrawPile.length}</dd>
-        </div>
-        <div>
-          <dt>Discard</dt>
-          <dd>{matchState.rivalDiscardPile.length}</dd>
-        </div>
-        <div>
-          <dt>Draws</dt>
-          <dd aria-label={`Rival draws ${HAND_LIMIT - handCount} at the start of its turn`}>
-            +{HAND_LIMIT - handCount}
-          </dd>
-        </div>
-      </dl>
+      <RivalStats matchState={matchState} handCount={handCount} />
     </section>
+  );
+}
+
+function RivalStats(props: { readonly matchState: MatchState; readonly handCount: number }): JSX.Element {
+  const { matchState, handCount } = props;
+
+  return (
+    <dl className="rival-stats">
+      <div>
+        <dt>Energy</dt>
+        <dd aria-label={`Rival Energy ${matchState.rivalEnergy} of ${matchState.maxEnergy}`}>
+          <span className="mini-pips" aria-hidden="true">
+            {Array.from({ length: matchState.maxEnergy }, (_, i) => (
+              <span key={i} className={i < matchState.rivalEnergy ? 'pip is-on' : 'pip'} />
+            ))}
+          </span>
+        </dd>
+      </div>
+      <div>
+        <dt>Deck</dt>
+        <dd>{matchState.rivalDrawPile.length}</dd>
+      </div>
+      <div>
+        <dt>Discard</dt>
+        <dd>{matchState.rivalDiscardPile.length}</dd>
+      </div>
+      <div>
+        <dt>Draws</dt>
+        <dd aria-label={`Rival draws ${HAND_LIMIT - handCount} at the start of its turn`}>
+          +{HAND_LIMIT - handCount}
+        </dd>
+      </div>
+    </dl>
   );
 }
 

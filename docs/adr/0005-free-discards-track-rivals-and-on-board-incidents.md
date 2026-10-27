@@ -3,7 +3,8 @@
 * **Status**: Accepted
 * **Date**: 2026-10-26
 * **Bounded Contexts**: battle,arena,diorama
-* **Supersedes**: The "2 cycles per turn" rule in ADR-0004
+* **Supersedes**: None
+* **Amends**: ADR-0004 (replaces only its "2 cycles per turn" rule; the rest stays in force)
 
 ## Context
 
@@ -32,6 +33,19 @@ Playtesting raised three problems:
   * The 2D sheet plays a CSS equivalent (`incident-fx-2d.tsx`).
   * The announcement becomes a non-modal toast that appears after the effect has started.
 * **Fresh matches.** The composition root injects `nextMatchSeed`, so every match gets a new shuffle and incident sequence. The workbench defaults to a fixed seed, which keeps tests deterministic.
+
+## Considered Options
+
+* **Discarding**:
+  * Keep the capped cycle (discard and draw at once, 2 per turn). Rejected: this is what playtesters found cramped.
+  * Unlimited discards with an immediate redraw. Rejected: a player could dig through the deck in one turn for free.
+  * **Unlimited free discards, refilled at the start of the next turn (chosen)**: discarding is unlimited, but it costs tempo.
+* **Incidents**:
+  * Keep the modal announcement only. Rejected: nothing happened on the board.
+  * **Declarative `manifestation` data rendered by each board view (chosen)**: the rules stay unaware of visuals, and both the 3D and 2D boards can play the same incident.
+* **Track identity**:
+  * Reskin only the bosses. Rejected: everyday battles would still look identical.
+  * **One everyday rival, one boss and one world per track (chosen).**
 
 ## Consequences
 

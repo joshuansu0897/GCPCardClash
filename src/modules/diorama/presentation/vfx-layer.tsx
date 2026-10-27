@@ -45,65 +45,27 @@ export function VfxLayer(props: VfxLayerProps): JSX.Element {
   );
 }
 
+type EventOf<T extends BoardEvent['type']> = Extract<BoardEvent, { readonly type: T }>;
+
+interface EffectProps<E extends BoardEvent> {
+  readonly layer: VfxLayerProps;
+  readonly event: E;
+  readonly startsAt: number;
+  readonly done: () => void;
+}
+
 function EffectSwitch(props: VfxLayerProps & { readonly effect: ActiveEffect }): JSX.Element | null {
   const { event, startsAt } = props.effect;
   const done = (): void => props.onDone(event.id);
 
   switch (event.type) {
     case 'card-deployed':
-    case 'slot-captured': {
-      const pad = props.padsBySlotId[event.slotId];
-      const card = props.cardsById[event.cardId];
-      if (pad === undefined) {
-        return null;
-      }
-      const ownerHex = OWNER_HEX[event.owner];
-      return (
-        <group position={pad.position as [number, number, number]}>
-          {event.type === 'slot-captured' && <CaptureBeam startsAt={startsAt} colorHex={ownerHex} />}
-          <CardToss
-            startsAt={startsAt}
-            bodyHex={card !== undefined ? INK_HEX[card.ink] : ownerHex}
-            ownerHex={ownerHex}
-          />
-          <ImpactRing startsAt={startsAt + TOSS_DURATION_SEC} colorHex={ownerHex} onDone={done} />
-        </group>
-      );
-    }
-    case 'shield-locked': {
-      const pad = props.padsBySlotId[event.slotId];
-      if (pad === undefined) {
-        return null;
-      }
-      return (
-        <group position={pad.position as [number, number, number]}>
-          <ImpactRing
-            startsAt={startsAt}
-            colorHex={event.matchedRecommendation ? '#38BDF8' : '#A78BFA'}
-            onDone={done}
-          />
-        </group>
-      );
-    }
-    case 'incident-struck': {
-      const manifestation = getIncidentCard(event.incidentId)?.manifestation;
-      if (manifestation === undefined) {
-        return <Retire onDone={done} />;
-      }
-      return (
-        <IncidentSpectacle
-          manifestation={manifestation}
-          startsAt={startsAt}
-          areas={resolveSpectacleAreas(manifestation, props.terraces, event.affectedZoneId)}
-          struckPoints={event.struckSlotIds.flatMap((slotId) => {
-            const pad = props.padsBySlotId[slotId];
-            return pad !== undefined ? [pad.position] : [];
-          })}
-          islandWidth={props.islandWidth}
-          onDone={done}
-        />
-      );
-    }
+    case 'slot-captured':
+      return <PlacementEffect layer={props} event={event} startsAt={startsAt} done={done} />;
+    case 'shield-locked':
+      return <ShieldLockEffect layer={props} event={event} startsAt={startsAt} done={done} />;
+    case 'incident-struck':
+      return <IncidentEffect layer={props} event={event} startsAt={startsAt} done={done} />;
     case 'match-completed':
       return event.winner === 'player' ? <VictoryBurst startsAt={startsAt} onDone={done} /> : <Retire onDone={done} />;
     case 'board-reset':
@@ -112,6 +74,64 @@ function EffectSwitch(props: VfxLayerProps & { readonly effect: ActiveEffect }):
     case 'turn-advanced':
       return <Retire onDone={done} />;
   }
+}
+
+/** A card tossed onto the pad, with a capture beam first when it takes over a Rival node. */
+function PlacementEffect(props: EffectProps<EventOf<'card-deployed' | 'slot-captured'>>): JSX.Element | null {
+  const { event, startsAt } = props;
+  const pad = props.layer.padsBySlotId[event.slotId];
+  if (pad === undefined) {
+    return null;
+  }
+  const card = props.layer.cardsById[event.cardId];
+  const ownerHex = OWNER_HEX[event.owner];
+
+  return (
+    <group position={pad.position as [number, number, number]}>
+      {event.type === 'slot-captured' && <CaptureBeam startsAt={startsAt} colorHex={ownerHex} />}
+      <CardToss startsAt={startsAt} bodyHex={card !== undefined ? INK_HEX[card.ink] : ownerHex} ownerHex={ownerHex} />
+      <ImpactRing startsAt={startsAt + TOSS_DURATION_SEC} colorHex={ownerHex} onDone={props.done} />
+    </group>
+  );
+}
+
+function ShieldLockEffect(props: EffectProps<EventOf<'shield-locked'>>): JSX.Element | null {
+  const pad = props.layer.padsBySlotId[props.event.slotId];
+  if (pad === undefined) {
+    return null;
+  }
+
+  return (
+    <group position={pad.position as [number, number, number]}>
+      <ImpactRing
+        startsAt={props.startsAt}
+        colorHex={props.event.matchedRecommendation ? '#38BDF8' : '#A78BFA'}
+        onDone={props.done}
+      />
+    </group>
+  );
+}
+
+function IncidentEffect(props: EffectProps<EventOf<'incident-struck'>>): JSX.Element {
+  const { event, layer } = props;
+  const manifestation = getIncidentCard(event.incidentId)?.manifestation;
+  if (manifestation === undefined) {
+    return <Retire onDone={props.done} />;
+  }
+
+  return (
+    <IncidentSpectacle
+      manifestation={manifestation}
+      startsAt={props.startsAt}
+      areas={resolveSpectacleAreas(manifestation, layer.terraces, event.affectedZoneId)}
+      struckPoints={event.struckSlotIds.flatMap((slotId) => {
+        const pad = layer.padsBySlotId[slotId];
+        return pad !== undefined ? [pad.position] : [];
+      })}
+      islandWidth={layer.islandWidth}
+      onDone={props.done}
+    />
+  );
 }
 
 function resolveSpectacleAreas(

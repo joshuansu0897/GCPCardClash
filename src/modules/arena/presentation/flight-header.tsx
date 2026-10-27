@@ -81,54 +81,13 @@ function FlightControlNav(props: {
   readonly onRestartMatch: () => void;
   readonly onOpenRules: () => void;
 }): JSX.Element {
-  const { mode, totalStars, maxCampaignStars } = props;
+  const { totalStars, maxCampaignStars } = props;
 
   return (
     <nav className="flight-controls" aria-label="Workbench Controls">
-      <div className="mode-switch" role="group" aria-label="Arena Mode">
-        <button
-          type="button"
-          className={mode === 'battle' ? 'mode-btn is-active' : 'mode-btn'}
-          aria-pressed={mode === 'battle'}
-          onClick={() => props.onToggleMode('battle')}
-        >
-          Battle
-        </button>
-        <button
-          type="button"
-          className={mode === 'boss' ? 'mode-btn is-active is-boss' : 'mode-btn is-boss'}
-          aria-pressed={mode === 'boss'}
-          disabled={!props.bossUnlocked && mode !== 'boss'}
-          title={props.bossUnlocked ? 'Challenge this track’s boss' : 'Finish this blueprint once to unlock its boss'}
-          onClick={() => props.onToggleMode('boss')}
-        >
-          <TechnicalIcon name={props.bossUnlocked || mode === 'boss' ? 'crown' : 'lock'} size={13} />
-          Boss
-        </button>
-        <button
-          type="button"
-          className={mode === 'study' ? 'mode-btn is-active' : 'mode-btn'}
-          aria-pressed={mode === 'study'}
-          onClick={() => props.onToggleMode('study')}
-        >
-          Study
-        </button>
-      </div>
-
+      <ArenaModeSwitch mode={props.mode} bossUnlocked={props.bossUnlocked} onToggleMode={props.onToggleMode} />
       {props.boardView !== null && (
-        <div className="mode-switch" role="group" aria-label="Board View">
-          {(['3d', '2d'] as const).map((view) => (
-            <button
-              key={view}
-              type="button"
-              className={props.boardView === view ? 'mode-btn is-active' : 'mode-btn'}
-              aria-pressed={props.boardView === view}
-              onClick={() => props.onChangeBoardView(view)}
-            >
-              {view.toUpperCase()}
-            </button>
-          ))}
-        </div>
+        <BoardViewToggle boardView={props.boardView} onChangeBoardView={props.onChangeBoardView} />
       )}
 
       <button type="button" className="rail-btn" onClick={props.onOpenScenarios}>
@@ -144,6 +103,67 @@ function FlightControlNav(props: {
         <span>Manual</span>
       </button>
     </nav>
+  );
+}
+
+function ArenaModeSwitch(props: {
+  readonly mode: PlayMode;
+  readonly bossUnlocked: boolean;
+  readonly onToggleMode: (nextMode: PlayMode) => void;
+}): JSX.Element {
+  const { mode } = props;
+
+  return (
+    <div className="mode-switch" role="group" aria-label="Arena Mode">
+      <button
+        type="button"
+        className={mode === 'battle' ? 'mode-btn is-active' : 'mode-btn'}
+        aria-pressed={mode === 'battle'}
+        onClick={() => props.onToggleMode('battle')}
+      >
+        Battle
+      </button>
+      <button
+        type="button"
+        className={mode === 'boss' ? 'mode-btn is-active is-boss' : 'mode-btn is-boss'}
+        aria-pressed={mode === 'boss'}
+        disabled={!props.bossUnlocked && mode !== 'boss'}
+        title={props.bossUnlocked ? 'Challenge this track’s boss' : 'Finish this blueprint once to unlock its boss'}
+        onClick={() => props.onToggleMode('boss')}
+      >
+        <TechnicalIcon name={props.bossUnlocked || mode === 'boss' ? 'crown' : 'lock'} size={13} />
+        Boss
+      </button>
+      <button
+        type="button"
+        className={mode === 'study' ? 'mode-btn is-active' : 'mode-btn'}
+        aria-pressed={mode === 'study'}
+        onClick={() => props.onToggleMode('study')}
+      >
+        Study
+      </button>
+    </div>
+  );
+}
+
+function BoardViewToggle(props: {
+  readonly boardView: BoardView;
+  readonly onChangeBoardView: (view: BoardView) => void;
+}): JSX.Element {
+  return (
+    <div className="mode-switch" role="group" aria-label="Board View">
+      {(['3d', '2d'] as const).map((view) => (
+        <button
+          key={view}
+          type="button"
+          className={props.boardView === view ? 'mode-btn is-active' : 'mode-btn'}
+          aria-pressed={props.boardView === view}
+          onClick={() => props.onChangeBoardView(view)}
+        >
+          {view.toUpperCase()}
+        </button>
+      ))}
+    </div>
   );
 }
 

@@ -103,23 +103,36 @@ function DebriefMetricsBody(props: {
         <p className="synthesis-copy">{blueprint.solutionSummary}</p>
       </div>
 
-      <div className="debrief-actions-row">
-        <button type="button" className="tile-primary-btn" onClick={() => onReplay(playMode === 'boss' ? 'boss' : 'battle')}>
-          {playMode === 'boss' ? `Rematch ${boss.name}` : 'Replay Battle'}
+      <DebriefActionsRow playMode={playMode} bossName={boss.name} onReplay={onReplay} onOpenCatalog={onOpenCatalog} />
+    </div>
+  );
+}
+
+function DebriefActionsRow(props: {
+  readonly playMode: PlayMode;
+  readonly bossName: string;
+  readonly onReplay: (mode: PlayMode) => void;
+  readonly onOpenCatalog: () => void;
+}): JSX.Element {
+  const { playMode, onReplay, onOpenCatalog } = props;
+
+  return (
+    <div className="debrief-actions-row">
+      <button type="button" className="tile-primary-btn" onClick={() => onReplay(playMode === 'boss' ? 'boss' : 'battle')}>
+        {playMode === 'boss' ? `Rematch ${props.bossName}` : 'Replay Battle'}
+      </button>
+      {playMode === 'battle' && (
+        <button type="button" className="tile-boss-btn" onClick={() => onReplay('boss')}>
+          <TechnicalIcon name="crown" size={14} />
+          <span>Challenge {props.bossName}</span>
         </button>
-        {playMode === 'battle' && (
-          <button type="button" className="tile-boss-btn" onClick={() => onReplay('boss')}>
-            <TechnicalIcon name="crown" size={14} />
-            <span>Challenge {boss.name}</span>
-          </button>
-        )}
-        <button type="button" className="tile-secondary-btn" onClick={() => onReplay('study')}>
-          Inspect in Study Mode
-        </button>
-        <button type="button" className="tile-secondary-btn" onClick={onOpenCatalog}>
-          All Blueprints
-        </button>
-      </div>
+      )}
+      <button type="button" className="tile-secondary-btn" onClick={() => onReplay('study')}>
+        Inspect in Study Mode
+      </button>
+      <button type="button" className="tile-secondary-btn" onClick={onOpenCatalog}>
+        All Blueprints
+      </button>
     </div>
   );
 }
@@ -162,32 +175,38 @@ export function RulesReferenceDialog(props: RulesDialogProps): JSX.Element {
         </form>
       </div>
 
-      <ol className="manual-rules-list">
-        <li>
-          <strong>1. Provision Deploy Energy:</strong> Play Provisioning cards (Cloud Console, gcloud CLI, Terraform, Cloud Build) at 0 cost to boost Deploy Energy up to 6E.
-        </li>
-        <li>
-          <strong>2. Deploy Matching GCP Services (+40 Flow Synergy):</strong> Select a Service card and click the Architecture Slot whose SLA, access pattern, and consistency clue match. Each connected upstream/downstream node you already own grants <strong>+40 Flow Synergy Points</strong>.
-        </li>
-        <li>
-          <strong>3. Learn from Anti-Patterns (-1E Diagnostic):</strong> Deploying an unsuitable GCP service (e.g., Cloud SQL for global active-active writes instead of Cloud Spanner) costs 1 Energy and logs an exam-grade explanation.
-        </li>
-        <li>
-          <strong>4. Defense-in-Depth Shields & Slot Capture:</strong> Unshielded nodes can be compromised by the opponent for <code>Cost + 1E</code>. Attach Cloud IAM, Cloud Armor, VPC-SC, KMS, or IAP shields (1E) for +35/+60 points and permanent takeover immunity.
-        </li>
-        <li>
-          <strong>5. A Fair Rival:</strong> The Rival draws from its own deck under your exact limits — a 6-card hand, +1E per turn up to 6E, free discards, a draw back to 6 at the start of its turn, and the same costs. You can see how many cards it holds, never which ones.
-        </li>
-        <li>
-          <strong>6. Discard Freely:</strong> Discard as many cards as you like during your turn — it costs nothing. You do not draw right away: at the start of your next turn you draw back up to 6 cards (the discard pile is reshuffled when your deck runs out).
-        </li>
-        <li>
-          <strong>7. Cloud Incidents:</strong> Every 3 turns (every 2 against a boss) an incident strikes BOTH architects and plays out on the board — meteor showers knock out a zone, scanner ships sweep your nodes, credits rain down, lightning hits the AI tier. Some bend the rules for that turn only.
-        </li>
-        <li>
-          <strong>8. Track Enemies & Bosses:</strong> Each track has its own world and enemy — the Rack Gremlin haunts Foundations, the Latency Wraith stalks Global & Hybrid, the Backlog Hydra floods Serverless & Data, and the Drift Sprite warps Vertex AI. Finish a blueprint once to unlock its track boss. Bosses follow the same rules, but chain moves, capture from Turn 2, and bring a signature incident.
-        </li>
-      </ol>
+      <ManualRulesList />
     </dialog>
+  );
+}
+
+function ManualRulesList(): JSX.Element {
+  return (
+    <ol className="manual-rules-list">
+      <li>
+        <strong>1. Provision Deploy Energy:</strong> Play Provisioning cards (Cloud Console, gcloud CLI, Terraform, Cloud Build) at 0 cost to boost Deploy Energy up to 6E.
+      </li>
+      <li>
+        <strong>2. Deploy Matching GCP Services (+40 Flow Synergy):</strong> Select a Service card and click the Architecture Slot whose SLA, access pattern, and consistency clue match. Each connected upstream/downstream node you already own grants <strong>+40 Flow Synergy Points</strong>.
+      </li>
+      <li>
+        <strong>3. Learn from Anti-Patterns (-1E Diagnostic):</strong> Deploying an unsuitable GCP service (e.g., Cloud SQL for global active-active writes instead of Cloud Spanner) costs 1 Energy and logs an exam-grade explanation.
+      </li>
+      <li>
+        <strong>4. Defense-in-Depth Shields & Slot Capture:</strong> Unshielded nodes can be compromised by the opponent for <code>Cost + 1E</code>. Attach Cloud IAM, Cloud Armor, VPC-SC, KMS, or IAP shields (1E) for +35/+60 points and permanent takeover immunity.
+      </li>
+      <li>
+        <strong>5. A Fair Rival:</strong> The Rival draws from its own deck under your exact limits — a 6-card hand, +1E per turn up to 6E, free discards, a draw back to 6 at the start of its turn, and the same costs. You can see how many cards it holds, never which ones.
+      </li>
+      <li>
+        <strong>6. Discard Freely:</strong> Discard as many cards as you like during your turn — it costs nothing. You do not draw right away: at the start of your next turn you draw back up to 6 cards (the discard pile is reshuffled when your deck runs out).
+      </li>
+      <li>
+        <strong>7. Cloud Incidents:</strong> Every 3 turns (every 2 against a boss) an incident strikes BOTH architects and plays out on the board — meteor showers knock out a zone, scanner ships sweep your nodes, credits rain down, lightning hits the AI tier. Some bend the rules for that turn only.
+      </li>
+      <li>
+        <strong>8. Track Enemies & Bosses:</strong> Each track has its own world and enemy — the Rack Gremlin haunts Foundations, the Latency Wraith stalks Global & Hybrid, the Backlog Hydra floods Serverless & Data, and the Drift Sprite warps Vertex AI. Finish a blueprint once to unlock its track boss. Bosses follow the same rules, but chain moves, capture from Turn 2, and bring a signature incident.
+      </li>
+    </ol>
   );
 }

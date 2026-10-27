@@ -59,21 +59,39 @@ export function HandDock(props: HandDockProps): JSX.Element {
         })}
       </ol>
 
-      <div className="turn-control-rail">
-        <PileStack label="Discard" count={props.discardPileCount} variant="discard" />
-        <div
-          className={`cycle-quota ${toDraw > 0 ? 'has-draws' : ''}`}
-          aria-label={`Cards to draw at the start of your next turn: ${toDraw}`}
-          title="Discarding is free. You draw back up to 6 at the start of your next turn."
-        >
-          <TechnicalIcon name="cards" size={14} />
-          <span>Next turn: draw {toDraw}</span>
-        </div>
-        <button type="button" className="end-turn-btn" disabled={inactive} onClick={props.onEndTurn}>
-          <span>{props.isLocked ? 'Rival Turn…' : 'End Turn'}</span>
-        </button>
-      </div>
+      <TurnControlRail
+        discardPileCount={props.discardPileCount}
+        toDraw={toDraw}
+        inactive={inactive}
+        isLocked={props.isLocked}
+        onEndTurn={props.onEndTurn}
+      />
     </section>
+  );
+}
+
+function TurnControlRail(props: {
+  readonly discardPileCount: number;
+  readonly toDraw: number;
+  readonly inactive: boolean;
+  readonly isLocked: boolean;
+  readonly onEndTurn: () => void;
+}): JSX.Element {
+  return (
+    <div className="turn-control-rail">
+      <PileStack label="Discard" count={props.discardPileCount} variant="discard" />
+      <div
+        className={`cycle-quota ${props.toDraw > 0 ? 'has-draws' : ''}`}
+        aria-label={`Cards to draw at the start of your next turn: ${props.toDraw}`}
+        title="Discarding is free. You draw back up to 6 at the start of your next turn."
+      >
+        <TechnicalIcon name="cards" size={14} />
+        <span>Next turn: draw {props.toDraw}</span>
+      </div>
+      <button type="button" className="end-turn-btn" disabled={props.inactive} onClick={props.onEndTurn}>
+        <span>{props.isLocked ? 'Rival Turn…' : 'End Turn'}</span>
+      </button>
+    </div>
   );
 }
 
@@ -144,17 +162,27 @@ function GameCard(props: GameCardProps): JSX.Element {
         {isSelected && <span className="gc-ribbon is-selected">Choose a target</span>}
       </button>
 
-      <button
-        type="button"
-        className="gc-cycle"
-        disabled={!props.canDiscard}
-        onClick={props.onDiscard}
-        aria-label={`Discard ${card.title}`}
-        title="Discard (free) — replaced at the start of your next turn"
-      >
-        <TechnicalIcon name="discard" size={13} />
-      </button>
+      <CardDiscardButton title={card.title} disabled={!props.canDiscard} onDiscard={props.onDiscard} />
     </div>
+  );
+}
+
+function CardDiscardButton(props: {
+  readonly title: string;
+  readonly disabled: boolean;
+  readonly onDiscard: () => void;
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      className="gc-cycle"
+      disabled={props.disabled}
+      onClick={props.onDiscard}
+      aria-label={`Discard ${props.title}`}
+      title="Discard (free) — replaced at the start of your next turn"
+    >
+      <TechnicalIcon name="discard" size={13} />
+    </button>
   );
 }
 

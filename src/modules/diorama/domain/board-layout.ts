@@ -82,6 +82,21 @@ export function computeIslandLayout(blueprint: ArchitectureBlueprint): IslandLay
       size: [ZONE_SPACING - 0.35, terraceDepth],
     }));
 
+  const roads = layoutRoads(blueprint, padsBySlotId);
+
+  return {
+    pads,
+    padsBySlotId,
+    terraces,
+    roads,
+    islandSize: [columns * ZONE_SPACING + ISLAND_MARGIN, terraceDepth + ISLAND_MARGIN],
+  };
+}
+
+function layoutRoads(
+  blueprint: ArchitectureBlueprint,
+  padsBySlotId: Readonly<Record<string, PadPlacement>>,
+): RoadPlacement[] {
   const roads: RoadPlacement[] = [];
   for (const edge of blueprint.edges) {
     const from = padsBySlotId[edge.fromSlotId];
@@ -97,14 +112,7 @@ export function computeIslandLayout(blueprint: ArchitectureBlueprint): IslandLay
       controlPoints: [from.position, arcMidpoint(from.position, to.position), to.position],
     });
   }
-
-  return {
-    pads,
-    padsBySlotId,
-    terraces,
-    roads,
-    islandSize: [columns * ZONE_SPACING + ISLAND_MARGIN, terraceDepth + ISLAND_MARGIN],
-  };
+  return roads;
 }
 
 function arcMidpoint(a: Vec3, b: Vec3): Vec3 {
