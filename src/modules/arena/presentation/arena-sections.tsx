@@ -8,6 +8,7 @@ import type { ComponentType, JSX } from 'react';
 
 import { GENTLE_INCIDENT_CADENCE, type MatchState, SHARP_INCIDENT_CADENCE, getIncidentCard } from '../../battle';
 import { deriveArchitectRank } from '../../progression';
+import { soundBoard } from '../../../shared/audio/sound-board';
 import { type BoardRendererProps, type BoardView, BoardViewSwitch, type ViewInsets } from './board-view-switch';
 import { MatchDebriefDialog, RulesReferenceDialog } from './debrief-and-rules-dialogs';
 import { FlightHeader } from './flight-header';
@@ -125,9 +126,15 @@ export function HandSection(props: SectionProps & { readonly withEnergy?: boolea
       maxEnergy={props.withEnergy === true ? matchState.maxEnergy : undefined}
       isMatchCompleted={matchState.status === 'completed'}
       isLocked={ctrl.rivalActing}
-      onSelectOrPlayCard={ctrl.handleCardClick}
+      onSelectOrPlayCard={(instance, card) => {
+        soundBoard.play('card-select');
+        ctrl.handleCardClick(instance, card);
+      }}
       onDiscardCard={ctrl.handleDiscardCard}
-      onEndTurn={ctrl.handleEndTurn}
+      onEndTurn={() => {
+        soundBoard.play('end-turn');
+        ctrl.handleEndTurn();
+      }}
     />
   );
 }

@@ -7,6 +7,7 @@ import type { JSX } from 'react';
 import type { ArchitectRank } from '../../progression';
 import type { BoardView } from './board-view-switch';
 import type { PlayMode } from './use-arena-controller';
+import { useSoundMuted } from '../../../shared/audio/sound-board';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 
 export interface FlightHeaderProps {
@@ -99,7 +100,25 @@ function FlightControlNav(props: {
         <TechnicalIcon name="book" size={15} />
         <span>Manual</span>
       </button>
+      <SoundToggle />
     </nav>
+  );
+}
+
+function SoundToggle(): JSX.Element {
+  const [muted, setMuted] = useSoundMuted();
+
+  return (
+    <button
+      type="button"
+      className="rail-btn is-icon-only"
+      aria-pressed={!muted}
+      aria-label={muted ? 'Turn sound on' : 'Turn sound off'}
+      title={muted ? 'Sound off' : 'Sound on'}
+      onClick={() => setMuted(!muted)}
+    >
+      <TechnicalIcon name={muted ? 'sound-off' : 'sound-on'} size={15} />
+    </button>
   );
 }
 

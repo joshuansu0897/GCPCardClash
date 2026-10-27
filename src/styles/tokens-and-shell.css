@@ -305,6 +305,10 @@ button:disabled {
   background: linear-gradient(180deg, rgba(51, 68, 100, 0.96) 0%, rgba(30, 43, 68, 0.96) 100%);
 }
 
+.rail-btn.is-icon-only {
+  padding: 6px 9px;
+}
+
 /* Main Stage Split */
 .workbench-stage {
   display: grid;

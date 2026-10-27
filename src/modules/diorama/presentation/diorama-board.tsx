@@ -3,6 +3,7 @@
  * Drop-in replacement for the 2D drafting sheet — same callbacks, same match state.
  */
 
+import { useProgress } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { type CSSProperties, type JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -13,7 +14,9 @@ import { type BoardEvent, diffBoardEvents } from '../domain/board-events';
 import { type IslandLayout, PAD_SIZE, computeIslandLayout } from '../domain/board-layout';
 import { resolvePadAffordance } from '../domain/pad-affordance';
 import { type TrackTheme, resolveTrackTheme } from '../domain/track-theme';
+import { useBoardSounds } from './board-sounds';
 import { DioramaScene } from './diorama-scene';
+import { preloadKitModels } from './kit-models';
 import { ENEMY_SCALE } from './rival-avatar';
 import { type ViewInsets, computeBoardFrame } from '../domain/camera-fit';
 import { type LabelAnchor, PadLabel, useLabelRegistry } from './label-overlay';
@@ -45,6 +48,8 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
   const { layout, theme, hasRival } = stage;
   const { registry, bind } = useLabelRegistry();
   const rival = resolveRivalForTrack(blueprint.trackId);
+  useBoardSounds(stage.effects);
+  useEffect(preloadKitModels, []);
 
   return (
     <section
@@ -70,12 +75,14 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
             effects={stage.effects}
             popDelays={stage.popDelays}
             reducedMotion={stage.reducedMotion}
+            lite={stage.lite}
             labelAnchors={stage.labelAnchors}
             labelRegistry={registry}
             onEffectDone={stage.dismissEffect}
           />
         </Canvas>
 
+        <DioramaLoader />
         <DioramaLabels board={props} layout={layout} rivalName={hasRival ? rival.name : null} bind={bind} />
         <p className="diorama-hint" aria-hidden="true">
           Drag to orbit · click a pad to inspect or deploy
@@ -101,8 +108,33 @@ function useDioramaStage(blueprint: ArchitectureBlueprint, matchState: MatchStat
   );
   const labelAnchors = useMemo(() => computeLabelAnchors(layout, rivalAnchor), [layout, rivalAnchor]);
   const theme = resolveTrackTheme(blueprint.trackId);
+  const lite = useMemo(isLowPowerDevice, []);
 
-  return { layout, theme, hasRival, reducedMotion, effects, popDelays, dismissEffect, rivalAnchor, cameraFrame, labelAnchors };
+  return { layout, theme, hasRival, reducedMotion, lite, effects, popDelays, dismissEffect, rivalAnchor, cameraFrame, labelAnchors };
+}
+
+/** Few CPU cores or a phone-sized screen: skip ambient occlusion and multisampling. */
+function isLowPowerDevice(): boolean {
+  const cores = typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : undefined;
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 720;
+  return narrow || (cores !== undefined && cores <= 4);
+}
+
+/** Covers the stage while the island's models stream in, with a progress bar. */
+function DioramaLoader(): JSX.Element | null {
+  const { active, progress } = useProgress();
+  if (!active) {
+    return null;
+  }
+
+  return (
+    <div className="diorama-loader" role="status" aria-live="polite">
+      <span className="diorama-loader-title">Raising the island…</span>
+      <span className="diorama-loader-track" aria-hidden="true">
+        <span className="diorama-loader-fill" style={{ width: `${Math.round(progress)}%` }} />
+      </span>
+    </div>
+  );
 }
 
 function themeStageStyle(theme: TrackTheme): CSSProperties {

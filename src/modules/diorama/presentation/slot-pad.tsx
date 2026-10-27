@@ -16,7 +16,7 @@ import { BuildingMiniature } from './building-miniature';
 import { OWNER_HEX } from './motion';
 import { ShieldDome } from './shield-dome';
 
-const PAD_HEIGHT = 0.3;
+const PAD_HEIGHT = 0.16;
 const CLICK_DRAG_TOLERANCE_PX = 6;
 const CORNER = PAD_SIZE / 2 - 0.14;
 /** Status lights on the pad's four corners, lit in the owner's (or the zone's) colour. */
@@ -130,10 +130,10 @@ function PadPlinth(props: {
         castShadow
         receiveShadow
       >
-        <meshStandardMaterial color={props.owned ? '#FFFFFF' : '#F8FAFC'} roughness={0.4} />
+        <meshStandardMaterial color={props.owned ? '#E7E5E4' : '#D6D3D1'} roughness={0.85} />
       </RoundedBox>
       <mesh position={[0, PAD_HEIGHT + 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[PAD_SIZE * 0.36, PAD_SIZE * 0.42, 4, 1, Math.PI / 4]} />
+        <ringGeometry args={[PAD_SIZE * 0.4, PAD_SIZE * 0.43, 4, 1, Math.PI / 4]} />
         <meshStandardMaterial ref={props.rimRef} color={props.rimHex} emissive={props.rimHex} emissiveIntensity={0.4} />
       </mesh>
       <mesh position={[0, 0.03, 0]} receiveShadow>

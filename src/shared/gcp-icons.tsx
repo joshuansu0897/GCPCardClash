@@ -25,7 +25,9 @@ export type TechnicalIconName =
   | 'lock'
   | 'cards'
   | 'discard'
-  | 'close';
+  | 'close'
+  | 'sound-on'
+  | 'sound-off';
 
 export interface TechnicalIconProps {
   readonly name: TechnicalIconName;
@@ -96,6 +98,8 @@ const UTILITY_STROKES: Partial<Record<TechnicalIconName, readonly string[]>> = {
   'arrow-right': ['M4 10h12M11.5 5.5L16 10l-4.5 4.5'],
   refresh: ['M16.5 5.5v4h-4', 'M16 9.5a6.5 6.5 0 1 0 1.2 4.5'],
   crown: ['M3 7l3.5 3L10 4.5 13.5 10 17 7l-1.5 8h-11L3 7z', 'M4.5 17.5h11'],
+  'sound-on': ['M3 8h3l4-3.5v11L6 12H3V8z', 'M13 7.5a3.5 3.5 0 0 1 0 5M15.5 5a7 7 0 0 1 0 10'],
+  'sound-off': ['M3 8h3l4-3.5v11L6 12H3V8z', 'M13.5 7.5l4 5M17.5 7.5l-4 5'],
   discard: [
     'M3.5 5.5h13M8 5.5V4h4v1.5',
     'M5 5.5l.9 11a1.5 1.5 0 0 0 1.5 1.4h5.2a1.5 1.5 0 0 0 1.5-1.4l.9-11M8.3 8.5v6M11.7 8.5v6',

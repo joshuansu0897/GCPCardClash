@@ -1,6 +1,7 @@
 /**
  * R3F scene graph for the Cloud Diorama: track-themed lighting and sky, fitted camera rig,
- * floating island, slot pads, context actors, flow lanes, the track's enemy, and transient VFX. Rendered inside `<Canvas>` by `DioramaBoard`.
+ * floating island, slot pads, context actors, flow lanes, the track's enemy, transient VFX,
+ * and the post-processing look. Rendered inside `<Canvas>` by `DioramaBoard`.
  */
 
 import { Sparkles } from '@react-three/drei';
@@ -22,6 +23,7 @@ import { type LabelAnchor, LabelProjector, type LabelRegistry } from './label-ov
 import { nowSec } from './motion';
 import { RivalAvatar } from './rival-avatar';
 import { RoadFlowPipes } from './road-flow-pipes';
+import { SceneLook } from './scene-look';
 import { SlotPad } from './slot-pad';
 import { TerraceDecor } from './terrace-decor';
 import { type ActiveEffect, TOSS_DURATION_SEC, VfxLayer } from './vfx-layer';
@@ -47,6 +49,8 @@ export interface DioramaSceneProps {
   readonly effects: readonly ActiveEffect[];
   readonly popDelays: Readonly<Record<string, number>>;
   readonly reducedMotion: boolean;
+  /** Weak device: skip the costly post effects. */
+  readonly lite: boolean;
   readonly labelAnchors: readonly LabelAnchor[];
   readonly labelRegistry: LabelRegistry;
   readonly onEffectDone: (eventId: string) => void;
@@ -62,20 +66,16 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
 
   return (
     <>
-      <SceneLights theme={theme} />
+      <SceneLook theme={theme} lite={props.lite} />
+      <SceneLights theme={theme} span={Math.max(width, depth)} />
 
       <FittedCameraRig frame={props.cameraFrame} insets={props.viewInsets} />
       <LabelProjector anchors={props.labelAnchors} registry={props.labelRegistry} />
 
       <IslandRoot effects={props.effects} reducedMotion={props.reducedMotion}>
-        <FloatingIsland
-          size={layout.islandSize}
-          terraces={layout.terraces}
-          theme={theme}
-          reducedMotion={props.reducedMotion}
-        />
+        <FloatingIsland size={layout.islandSize} terraces={layout.terraces} theme={theme} reducedMotion={props.reducedMotion} />
         <CloudBoundary rect={layout.cloud} />
-        <TerraceDecor decor={decor} foliage={theme.grass} />
+        <TerraceDecor decor={decor} />
         <ContextActors contexts={layout.contexts} />
         <RoadFlowPipes roads={layout.roads} slots={matchState.slots} reducedMotion={props.reducedMotion} />
 
@@ -105,8 +105,10 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
   );
 }
 
-function SceneLights(props: { readonly theme: TrackTheme }): JSX.Element {
+/** Warm key light whose shadow camera covers the whole island (`span` = its longest side). */
+function SceneLights(props: { readonly theme: TrackTheme; readonly span: number }): JSX.Element {
   const { theme } = props;
+  const reach = props.span / 2 + 2;
 
   return (
     <>
@@ -117,12 +119,14 @@ function SceneLights(props: { readonly theme: TrackTheme }): JSX.Element {
         position={[9, 16, 8]}
         intensity={theme.sunIntensity}
         castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
-        shadow-camera-top={12}
-        shadow-camera-bottom={-12}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-reach}
+        shadow-camera-right={reach}
+        shadow-camera-top={reach}
+        shadow-camera-bottom={-reach}
+        shadow-camera-far={60}
         shadow-bias={-0.0004}
+        shadow-normalBias={0.03}
       />
     </>
   );
