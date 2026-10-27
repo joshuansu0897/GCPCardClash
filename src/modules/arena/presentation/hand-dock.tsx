@@ -2,7 +2,7 @@
  * Tactile Card Hand Dock with subsystem ink bands, energy badges, discard cycle, and End Turn.
  */
 
-import type { JSX } from 'react';
+import type { JSX, PointerEvent } from 'react';
 
 import type { HandCardInstance } from '../../battle';
 import type { CatalogCard } from '../../catalog';
@@ -78,7 +78,12 @@ function TactileDeckCard(props: TactileDeckCardProps): JSX.Element {
   const affordClass = affordable ? '' : 'is-low-energy';
 
   return (
-    <article className={`deck-card ${selectedClass} ${affordClass}`}>
+    <div
+      className={`deck-card-bezel ${selectedClass} ${affordClass}`}
+      onPointerMove={applyCardPointerTilt}
+      onPointerLeave={resetCardPointerTilt}
+    ><article className={`deck-card ${selectedClass}`}>
+      <span className="deck-card-foil" aria-hidden="true" />
       <div className={`card-ink-band ink-bg-${card.ink}`} aria-hidden="true" />
 
       <div className="deck-card-header">
@@ -109,8 +114,35 @@ function TactileDeckCard(props: TactileDeckCardProps): JSX.Element {
           Cycle
         </button>
       </div>
-    </article>
+    </article></div>
   );
+}
+
+function applyCardPointerTilt(event: PointerEvent<HTMLElement>): void {
+  // Measure card bounds
+  const el = event.currentTarget;
+  const rect = el.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0 || !Number.isFinite(event.clientX)) {
+    return;
+  }
+
+  // Compute normalized pointer percentages and capped 3D tilt angles
+  const pctX = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+  const pctY = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+  const tiltY = (((pctX - 50) / 50) * 5).toFixed(2);
+  const tiltX = (((50 - pctY) / 50) * 5).toFixed(2);
+
+  // Sync custom properties to compositor
+  el.style.setProperty('--pointer-x', `${pctX}%`);
+  el.style.setProperty('--pointer-y', `${pctY}%`);
+  el.style.setProperty('--tilt-x', `${tiltX}deg`);
+  el.style.setProperty('--tilt-y', `${tiltY}deg`);
+}
+
+function resetCardPointerTilt(event: PointerEvent<HTMLElement>): void {
+  const el = event.currentTarget;
+  el.style.setProperty('--tilt-x', '0deg');
+  el.style.setProperty('--tilt-y', '0deg');
 }
 
 function CardCostBadge(props: { readonly card: CatalogCard }): JSX.Element {

@@ -155,11 +155,22 @@ function SingleFlowBus(props: {
       <path
         d={geometry.pathData}
         fill="none"
-        stroke={isSynergy ? '#1A56DB' : '#8F8878'}
-        strokeWidth={isSynergy ? '2.25' : '1.5'}
-        strokeDasharray={isSynergy ? undefined : '5 4'}
+        stroke={isSynergy ? '#2563EB' : '#94A3B8'}
+        strokeWidth={isSynergy ? '2.75' : '1.6'}
+        strokeDasharray={isSynergy ? undefined : '6 5'}
         markerEnd={isSynergy ? 'url(#flow-arrow-synergy)' : 'url(#flow-arrow-neutral)'}
       />
+      {isSynergy && (
+        <path
+          d={geometry.pathData}
+          className="flow-pulse-stream"
+          fill="none"
+          stroke="#93C5FD"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeDasharray="6 18"
+        />
+      )}
       <FlowCalloutStamp
         x={geometry.badgeX}
         y={geometry.badgeY}
