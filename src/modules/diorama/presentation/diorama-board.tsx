@@ -14,15 +14,20 @@ import { type IslandLayout, PAD_SIZE, computeIslandLayout } from '../domain/boar
 import { resolvePadAffordance } from '../domain/pad-affordance';
 import { type TrackTheme, resolveTrackTheme } from '../domain/track-theme';
 import { DioramaScene } from './diorama-scene';
+import { type ViewInsets, computeBoardFrame } from '../domain/camera-fit';
 import { type LabelAnchor, PadLabel, useLabelRegistry } from './label-overlay';
 import { nowSec, usePrefersReducedMotion } from './motion';
 import { type ActiveEffect, TOSS_DURATION_SEC } from './vfx-layer';
 
 const EFFECT_STAGGER_SEC = 0.4;
 type LabelBinder = ReturnType<typeof useLabelRegistry>['bind'];
-/** The enemy hovers behind the island's far edge, above the skyline. */
-const RIVAL_HOVER_HEIGHT = 1.5;
-const RIVAL_BACKOFF = 1.9;
+/** The enemy hovers just off the island's front-left edge, facing the board. */
+const RIVAL_HOVER_HEIGHT = 1.8;
+const RIVAL_SIDE_GAP = 1.3;
+const RIVAL_DEPTH = 0.6;
+/** Bosses are drawn half again as large, so they hover a little further out. */
+const BOSS_SIDE_GAP = 1.8;
+const BOSS_SCALE = 1.55;
 
 export interface DioramaBoardProps {
   readonly blueprint: ArchitectureBlueprint;
@@ -32,18 +37,21 @@ export interface DioramaBoardProps {
   readonly inspectedSlotId: string | null;
   readonly onInspectSlot: (slotId: string) => void;
   readonly onTargetSlot: (slotId: string) => void;
+  /** Set when the board fills the screen behind a HUD: the screen space each HUD edge covers. */
+  readonly viewInsets?: ViewInsets;
 }
 
 export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
   const { blueprint, matchState } = props;
-  const { layout, theme, reducedMotion, effects, popDelays, dismissEffect, rivalAnchor, labelAnchors } =
-    useDioramaStage(blueprint, matchState);
+  const stage = useDioramaStage(blueprint, matchState);
+  const { layout, theme, hasRival } = stage;
   const { registry, bind } = useLabelRegistry();
-  const hasRival = matchState.mode !== 'study';
   const rival = resolveRivalForTrack(blueprint.trackId, matchState.rivalProfile);
 
   return (
-    <section className="drafting-sheet diorama-sheet" aria-label="3D Architecture Diorama Playboard">
+    <section
+      className={`drafting-sheet diorama-sheet ${props.viewInsets !== undefined ? 'is-immersive' : ''}`}
+      aria-label="3D Architecture Diorama Playboard">
       <DioramaTitleBar blueprint={blueprint} />
       <DioramaGuidance selectedHandCard={props.selectedHandCard} mode={matchState.mode} />
 
@@ -58,13 +66,15 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
             {...props}
             layout={layout}
             theme={theme}
-            rivalAnchor={hasRival ? rivalAnchor : null}
-            effects={effects}
-            popDelays={popDelays}
-            reducedMotion={reducedMotion}
-            labelAnchors={labelAnchors}
+            rivalAnchor={hasRival ? stage.rivalAnchor : null}
+            cameraFrame={stage.cameraFrame}
+            viewInsets={props.viewInsets}
+            effects={stage.effects}
+            popDelays={stage.popDelays}
+            reducedMotion={stage.reducedMotion}
+            labelAnchors={stage.labelAnchors}
             labelRegistry={registry}
-            onEffectDone={dismissEffect}
+            onEffectDone={stage.dismissEffect}
           />
         </Canvas>
 
@@ -77,19 +87,25 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
   );
 }
 
-/** Island layout, track theme, queued VFX and label anchors for the current match. */
+/** Island layout, track theme, queued VFX, the enemy's spot and label anchors for the current match. */
 function useDioramaStage(blueprint: ArchitectureBlueprint, matchState: MatchState) {
   const layout = useMemo(() => computeIslandLayout(blueprint), [blueprint]);
   const reducedMotion = usePrefersReducedMotion();
   const { effects, popDelays, dismissEffect } = useBoardEventQueue(matchState, reducedMotion);
+  const hasRival = matchState.mode !== 'study';
+  const isBoss = matchState.rivalProfile === 'boss';
   const rivalAnchor = useMemo(
-    () => [0, RIVAL_HOVER_HEIGHT, -layout.islandSize[1] / 2 - RIVAL_BACKOFF] as const,
-    [layout],
+    () => [-layout.islandSize[0] / 2 - (isBoss ? BOSS_SIDE_GAP : RIVAL_SIDE_GAP), RIVAL_HOVER_HEIGHT, RIVAL_DEPTH] as const,
+    [layout, isBoss],
+  );
+  const cameraFrame = useMemo(
+    () => computeBoardFrame(layout, hasRival ? { anchor: rivalAnchor, scale: isBoss ? BOSS_SCALE : 1 } : null),
+    [layout, hasRival, rivalAnchor, isBoss],
   );
   const labelAnchors = useMemo(() => computeLabelAnchors(layout, rivalAnchor), [layout, rivalAnchor]);
   const theme = resolveTrackTheme(blueprint.trackId);
 
-  return { layout, theme, reducedMotion, effects, popDelays, dismissEffect, rivalAnchor, labelAnchors };
+  return { layout, theme, hasRival, reducedMotion, effects, popDelays, dismissEffect, rivalAnchor, cameraFrame, labelAnchors };
 }
 
 function themeStageStyle(theme: TrackTheme): CSSProperties {
@@ -167,7 +183,7 @@ function computeLabelAnchors(
   rivalAnchor: readonly [number, number, number],
 ): readonly LabelAnchor[] {
   return [
-    { id: 'rival', position: [rivalAnchor[0] + 2.6, rivalAnchor[1] + 0.4, rivalAnchor[2]] as const },
+    { id: 'rival', position: [rivalAnchor[0], rivalAnchor[1] - 1.7, rivalAnchor[2]] as const },
     ...layout.terraces.map((t) => ({
       id: `zone:${t.zoneId}`,
       position: [t.center[0], 0, layout.islandSize[1] / 2 - 0.15] as const,

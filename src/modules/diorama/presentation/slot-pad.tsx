@@ -18,6 +18,14 @@ import { ShieldDome } from './shield-dome';
 
 const PAD_HEIGHT = 0.3;
 const CLICK_DRAG_TOLERANCE_PX = 6;
+const CORNER = PAD_SIZE / 2 - 0.14;
+/** Status lights on the pad's four corners, lit in the owner's (or the zone's) colour. */
+const PAD_CORNERS: readonly (readonly [number, number])[] = [
+  [-CORNER, -CORNER],
+  [CORNER, -CORNER],
+  [-CORNER, CORNER],
+  [CORNER, CORNER],
+];
 
 export interface SlotPadProps {
   readonly placement: PadPlacement;
@@ -128,6 +136,16 @@ function PadPlinth(props: {
         <ringGeometry args={[PAD_SIZE * 0.36, PAD_SIZE * 0.42, 4, 1, Math.PI / 4]} />
         <meshStandardMaterial ref={props.rimRef} color={props.rimHex} emissive={props.rimHex} emissiveIntensity={0.4} />
       </mesh>
+      <mesh position={[0, 0.03, 0]} receiveShadow>
+        <boxGeometry args={[PAD_SIZE + 0.18, 0.06, PAD_SIZE + 0.18]} />
+        <meshStandardMaterial color="#334155" roughness={0.6} />
+      </mesh>
+      {PAD_CORNERS.map(([x, z]) => (
+        <mesh key={`${x}:${z}`} position={[x, PAD_HEIGHT + 0.05, z]}>
+          <boxGeometry args={[0.12, 0.1, 0.12]} />
+          <meshStandardMaterial color={props.rimHex} emissive={props.rimHex} emissiveIntensity={1.3} toneMapped={false} />
+        </mesh>
+      ))}
     </group>
   );
 }

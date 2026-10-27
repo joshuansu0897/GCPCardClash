@@ -21,6 +21,9 @@ export { computeIslandLayout, resolveBuildingArchetype } from './domain/board-la
 export type { PadAffordance } from './domain/pad-affordance';
 export { describeAffordance, resolvePadAffordance } from './domain/pad-affordance';
 
+export type { CameraFit, CameraFrame, EnemyPresence, ViewInsets } from './domain/camera-fit';
+export { computeBoardFrame, computeCameraFit } from './domain/camera-fit';
+
 export type { EnemyForm, TrackTheme } from './domain/track-theme';
 export { TRACK_THEMES, resolveTrackTheme } from './domain/track-theme';
 

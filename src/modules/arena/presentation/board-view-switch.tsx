@@ -13,6 +13,14 @@ import { IncidentFx2d } from './incident-fx-2d';
 
 export type BoardView = '3d' | '2d';
 
+/** Screen space (CSS px) the immersive HUD covers on each edge of a full-screen board. */
+export interface ViewInsets {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
 /** Contract any alternate playboard renderer (e.g. the `diorama` context) must satisfy. */
 export interface BoardRendererProps {
   readonly blueprint: ArchitectureBlueprint;
@@ -22,6 +30,8 @@ export interface BoardRendererProps {
   readonly inspectedSlotId: string | null;
   readonly onInspectSlot: (slotId: string) => void;
   readonly onTargetSlot: (slotId: string) => void;
+  /** Set when the board fills the screen behind the HUD, so the renderer can frame the free area. */
+  readonly viewInsets?: ViewInsets;
 }
 
 export interface BoardViewSwitchProps extends BoardRendererProps {

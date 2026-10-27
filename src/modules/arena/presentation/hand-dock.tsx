@@ -18,6 +18,8 @@ export interface HandDockProps {
   readonly cardsById: Readonly<Record<string, CatalogCard>>;
   readonly selectedInstanceId: string | null;
   readonly playerEnergy: number;
+  /** When set, an energy meter sits beside End Turn (the immersive HUD has no header gauge). */
+  readonly maxEnergy?: number;
   readonly isMatchCompleted: boolean;
   readonly isLocked: boolean;
   readonly onSelectOrPlayCard: (instance: HandCardInstance, card: CatalogCard) => void;
@@ -62,6 +64,7 @@ export function HandDock(props: HandDockProps): JSX.Element {
       <TurnControlRail
         discardPileCount={props.discardPileCount}
         toDraw={toDraw}
+        energy={props.maxEnergy !== undefined ? { current: props.playerEnergy, max: props.maxEnergy } : null}
         inactive={inactive}
         isLocked={props.isLocked}
         onEndTurn={props.onEndTurn}
@@ -73,6 +76,7 @@ export function HandDock(props: HandDockProps): JSX.Element {
 function TurnControlRail(props: {
   readonly discardPileCount: number;
   readonly toDraw: number;
+  readonly energy: { readonly current: number; readonly max: number } | null;
   readonly inactive: boolean;
   readonly isLocked: boolean;
   readonly onEndTurn: () => void;
@@ -80,6 +84,7 @@ function TurnControlRail(props: {
   return (
     <div className="turn-control-rail">
       <PileStack label="Discard" count={props.discardPileCount} variant="discard" />
+      {props.energy !== null && <EnergyMeter current={props.energy.current} max={props.energy.max} />}
       <div
         className={`cycle-quota ${props.toDraw > 0 ? 'has-draws' : ''}`}
         aria-label={`Cards to draw at the start of your next turn: ${props.toDraw}`}
@@ -91,6 +96,22 @@ function TurnControlRail(props: {
       <button type="button" className="end-turn-btn" disabled={props.inactive} onClick={props.onEndTurn}>
         <span>{props.isLocked ? 'Rival Turn…' : 'End Turn'}</span>
       </button>
+    </div>
+  );
+}
+
+function EnergyMeter(props: { readonly current: number; readonly max: number }): JSX.Element {
+  const { current, max } = props;
+
+  return (
+    <div className="energy-meter" aria-label={`Energy ${current} of ${max}`}>
+      <TechnicalIcon name="bolt" size={15} />
+      <span className="energy-meter-cells" aria-hidden="true">
+        {Array.from({ length: max }, (_, idx) => (
+          <span key={idx} className={idx < current ? 'energy-cell is-charged' : 'energy-cell'} />
+        ))}
+      </span>
+      <strong className="energy-meter-value">{current}/{max}</strong>
     </div>
   );
 }

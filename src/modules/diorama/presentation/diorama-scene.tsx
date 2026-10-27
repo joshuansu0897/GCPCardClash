@@ -3,25 +3,28 @@
  * floating island, slot pads, flow roads, the track's enemy, and transient VFX. Rendered inside `<Canvas>` by `DioramaBoard`.
  */
 
-import { OrbitControls, Sparkles } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
-import { type JSX, type ReactNode, useEffect, useRef } from 'react';
-import { type Group, MathUtils, PerspectiveCamera, Vector3 } from 'three';
+import { Sparkles } from '@react-three/drei';
+import { useFrame } from '@react-three/fiber';
+import { type JSX, type ReactNode, useMemo, useRef } from 'react';
+import type { Group } from 'three';
 
 import { type MatchState, getIncidentCard } from '../../battle';
 import type { ArchitectureBlueprint, ArchitectureSlot, CatalogCard } from '../../catalog';
 import type { IslandLayout } from '../domain/board-layout';
 import type { TrackTheme } from '../domain/track-theme';
 import { resolvePadAffordance } from '../domain/pad-affordance';
+import { computeTerraceDecor } from '../domain/terrace-decor';
+import type { CameraFrame, ViewInsets } from '../domain/camera-fit';
+import { FittedCameraRig } from './fitted-camera-rig';
 import { FloatingIsland, SkyClouds } from './floating-island';
 import { type LabelAnchor, LabelProjector, type LabelRegistry } from './label-overlay';
 import { nowSec } from './motion';
 import { RivalAvatar } from './rival-avatar';
 import { RoadFlowPipes } from './road-flow-pipes';
 import { SlotPad } from './slot-pad';
+import { TerraceDecor } from './terrace-decor';
 import { type ActiveEffect, TOSS_DURATION_SEC, VfxLayer } from './vfx-layer';
 
-const CAMERA_DIRECTION = new Vector3(0, 0.62, 0.8).normalize();
 const SHAKE_WINDOW_SEC = 0.32;
 /** Incidents that rattle the island while they hit: [start, end] seconds after the strike. */
 const RUMBLE_WINDOW_SEC = [0.8, 3.2] as const;
@@ -32,6 +35,10 @@ export interface DioramaSceneProps {
   readonly theme: TrackTheme;
   /** Where the track's enemy hovers; `null` hides it (Guided Study has no opponent). */
   readonly rivalAnchor: readonly [number, number, number] | null;
+  /** What the camera frames: the island, plus room for the enemy beside it. */
+  readonly cameraFrame: CameraFrame;
+  /** HUD panels covering the board's edges; `undefined` when the board is embedded in the page. */
+  readonly viewInsets: ViewInsets | undefined;
   readonly matchState: MatchState;
   readonly cardsById: Readonly<Record<string, CatalogCard>>;
   readonly selectedHandCard: CatalogCard | undefined;
@@ -50,12 +57,13 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
   const { layout, matchState, blueprint, theme } = props;
   const slotsById = new Map(blueprint.slots.map((s) => [s.id, s]));
   const [width, depth] = layout.islandSize;
+  const decor = useMemo(() => computeTerraceDecor(layout), [layout]);
 
   return (
     <>
       <SceneLights theme={theme} />
 
-      <FittedCameraRig size={layout.islandSize} />
+      <FittedCameraRig frame={props.cameraFrame} insets={props.viewInsets} />
       <LabelProjector anchors={props.labelAnchors} registry={props.labelRegistry} />
 
       <IslandRoot effects={props.effects} reducedMotion={props.reducedMotion}>
@@ -65,6 +73,7 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
           theme={theme}
           reducedMotion={props.reducedMotion}
         />
+        <TerraceDecor decor={decor} foliage={theme.grass} />
         <RoadFlowPipes roads={layout.roads} slots={matchState.slots} reducedMotion={props.reducedMotion} />
 
         <PadField scene={props} slotsById={slotsById} />
@@ -220,43 +229,4 @@ function effectShake({ event, startsAt }: ActiveEffect, now: number): number {
   }
   const strength = event.type === 'slot-captured' ? 0.16 : 0.07;
   return strength * (1 - sinceImpact / SHAKE_WINDOW_SEC);
-}
-
-/** Positions the camera so the whole island fits the viewport at any aspect ratio. */
-function FittedCameraRig(props: { readonly size: readonly [number, number] }): JSX.Element {
-  const camera = useThree((state) => state.camera);
-  const viewport = useThree((state) => state.size);
-  const controls = useThree((state) => state.controls) as unknown as { update: () => void } | null;
-  const [width, depth] = props.size;
-
-  useEffect(() => {
-    if (!(camera instanceof PerspectiveCamera)) {
-      return;
-    }
-    const aspect = viewport.width / Math.max(1, viewport.height);
-    const vFov = MathUtils.degToRad(camera.fov);
-    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-    const fitWidth = (width / 2 + 1.2) / Math.tan(hFov / 2);
-    const fitDepth = (depth / 2 + 1.4) / Math.tan(vFov / 2);
-    const distance = Math.max(fitWidth, fitDepth) + depth * 0.25;
-
-    camera.position.copy(CAMERA_DIRECTION).multiplyScalar(distance);
-    camera.lookAt(0, 0, 0);
-    camera.updateProjectionMatrix();
-    controls?.update();
-  }, [camera, controls, viewport.width, viewport.height, width, depth]);
-
-  return (
-    <OrbitControls
-      makeDefault
-      enablePan={false}
-      enableZoom={false}
-      enableDamping
-      minPolarAngle={0.45}
-      maxPolarAngle={1.1}
-      minAzimuthAngle={-0.7}
-      maxAzimuthAngle={0.7}
-      target={[0, 0, 0]}
-    />
-  );
 }

@@ -1,7 +1,8 @@
 /**
- * The track's enemy, hovering behind the island and watching the board. Each track has its own
+ * The track's enemy, hovering beside the island and watching the board. Each track has its own
  * creature family (rack, wraith, hydra, oracle); the boss is the larger, crowned elder.
- * It lunges and flares whenever the Rival lands a card, so its turn reads as the enemy acting.
+ * It lunges toward the island and flares whenever the Rival lands a card, so its turn reads
+ * as the enemy acting.
  */
 
 import { Sparkles } from '@react-three/drei';
@@ -14,6 +15,10 @@ import { clamp01, nowSec } from './motion';
 import type { ActiveEffect } from './vfx-layer';
 
 const LUNGE_SEC = 0.7;
+/** The enemy hovers left of the island: turned toward the board and tipped back toward the high camera. */
+const FACING_YAW = 0.55;
+const FACING_PITCH = -0.32;
+const LUNGE_REACH = 1.4;
 const CROWN_Y: Readonly<Record<EnemyForm, number>> = { rack: 1.3, wraith: 1.4, hydra: 1.6, oracle: 0.95 };
 
 export interface RivalAvatarProps {
@@ -57,8 +62,8 @@ function poseRival(
   const sink = props.isBoss ? 0.55 : 0;
   const bob = Math.sin(t * 1.3) * 0.18 * sway;
 
-  root.position.set(props.position[0], props.position[1] + bob - sink, props.position[2] + lunge * 1.4);
-  root.rotation.set(-0.12 - lunge * 0.25, Math.sin(t * 0.5) * 0.18 * sway, 0);
+  root.position.set(props.position[0] + lunge * LUNGE_REACH, props.position[1] + bob - sink, props.position[2]);
+  root.rotation.set(FACING_PITCH - lunge * 0.25, FACING_YAW + Math.sin(t * 0.5) * 0.18 * sway, 0);
   root.scale.setScalar(scale * (1 + lunge * 0.12));
   if (glow !== null) {
     glow.emissiveIntensity = 1.1 + lunge * 2.5 + Math.sin(t * 3) * 0.25 * sway;
