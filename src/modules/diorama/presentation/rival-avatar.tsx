@@ -1,8 +1,7 @@
 /**
- * The track's enemy, hovering beside the island and watching the board. Each track has its own
- * creature family (rack, wraith, hydra, oracle); the boss is the larger, crowned elder.
- * It lunges toward the island and flares whenever the Rival lands a card, so its turn reads
- * as the enemy acting.
+ * The track's enemy, its crowned boss, hovering beside the island and watching the board. Each
+ * track has its own creature family (monolith, wraith, hydra, oracle). It lunges toward the
+ * island and flares whenever the Rival lands a card, so its turn reads as the enemy acting.
  */
 
 import { Sparkles } from '@react-three/drei';
@@ -20,10 +19,12 @@ const FACING_YAW = 0.55;
 const FACING_PITCH = -0.32;
 const LUNGE_REACH = 1.4;
 const CROWN_Y: Readonly<Record<EnemyForm, number>> = { rack: 1.3, wraith: 1.4, hydra: 1.6, oracle: 0.95 };
+/** The enemy is drawn half again as large as its model, and sunk to keep it level with the board. */
+export const ENEMY_SCALE = 1.55;
+const ENEMY_SINK = 0.55;
 
 export interface RivalAvatarProps {
   readonly theme: TrackTheme;
-  readonly isBoss: boolean;
   readonly position: readonly [number, number, number];
   readonly effects: readonly ActiveEffect[];
   readonly reducedMotion: boolean;
@@ -37,11 +38,9 @@ export function RivalAvatar(props: RivalAvatarProps): JSX.Element {
 
   return (
     <group ref={rootRef} position={props.position as [number, number, number]}>
-      <EnemyBody form={props.theme.enemyForm} theme={props.theme} isBoss={props.isBoss} glowRef={glowRef} />
-      {props.isBoss && <BossCrown y={CROWN_Y[props.theme.enemyForm]} glow={props.theme.enemyGlow} />}
-      {props.isBoss && (
-        <Sparkles count={26} scale={[3.2, 3.2, 2]} size={4} speed={0.5} color={props.theme.enemyGlow} />
-      )}
+      <EnemyBody form={props.theme.enemyForm} theme={props.theme} glowRef={glowRef} />
+      <BossCrown y={CROWN_Y[props.theme.enemyForm]} glow={props.theme.enemyGlow} />
+      <Sparkles count={26} scale={[3.2, 3.2, 2]} size={4} speed={0.5} color={props.theme.enemyGlow} />
     </group>
   );
 }
@@ -58,13 +57,11 @@ function poseRival(
   }
   const sway = props.reducedMotion ? 0 : 1;
   const lunge = props.reducedMotion ? 0 : rivalLungeStrength(props.effects);
-  const scale = props.isBoss ? 1.55 : 1;
-  const sink = props.isBoss ? 0.55 : 0;
   const bob = Math.sin(t * 1.3) * 0.18 * sway;
 
-  root.position.set(props.position[0] + lunge * LUNGE_REACH, props.position[1] + bob - sink, props.position[2]);
+  root.position.set(props.position[0] + lunge * LUNGE_REACH, props.position[1] + bob - ENEMY_SINK, props.position[2]);
   root.rotation.set(FACING_PITCH - lunge * 0.25, FACING_YAW + Math.sin(t * 0.5) * 0.18 * sway, 0);
-  root.scale.setScalar(scale * (1 + lunge * 0.12));
+  root.scale.setScalar(ENEMY_SCALE * (1 + lunge * 0.12));
   if (glow !== null) {
     glow.emissiveIntensity = 1.1 + lunge * 2.5 + Math.sin(t * 3) * 0.25 * sway;
   }
@@ -88,7 +85,6 @@ function rivalLungeStrength(effects: readonly ActiveEffect[]): number {
 interface BodyProps {
   readonly form: EnemyForm;
   readonly theme: TrackTheme;
-  readonly isBoss: boolean;
   readonly glowRef: RefObject<MeshStandardMaterial | null>;
 }
 
@@ -117,16 +113,16 @@ function Glow(props: { readonly color: string; readonly glowRef?: BodyProps['glo
   );
 }
 
-/** Foundations: a server rack with a slit visor (boss: a towering black monolith). */
+/** Foundations: The Monolith, a towering black server rack with a slit visor. */
 function RackBody(props: BodyProps): JSX.Element {
-  const { theme, isBoss } = props;
-  const height = isBoss ? 2.2 : 1.5;
-  const ledRows = isBoss ? 7 : 4;
+  const { theme } = props;
+  const height = 2.2;
+  const ledRows = 7;
   return (
     <group>
       <mesh castShadow>
-        <boxGeometry args={[isBoss ? 1.1 : 1.2, height, 0.6]} />
-        <meshStandardMaterial color={isBoss ? '#0F172A' : theme.enemyBody} roughness={0.35} metalness={0.6} />
+        <boxGeometry args={[1.1, height, 0.6]} />
+        <meshStandardMaterial color="#0F172A" roughness={0.35} metalness={0.6} />
       </mesh>
       <mesh position={[0, height * 0.28, 0.31]}>
         <boxGeometry args={[0.8, 0.12, 0.02]} />
@@ -138,20 +134,13 @@ function RackBody(props: BodyProps): JSX.Element {
           <meshStandardMaterial color="#22C55E" emissive="#22C55E" emissiveIntensity={row % 2 === 0 ? 0.9 : 0.2} />
         </mesh>
       ))}
-      {!isBoss &&
-        [-0.42, 0.42].map((x) => (
-          <mesh key={x} position={[x, height / 2 + 0.2, 0]} rotation={[0, 0, x > 0 ? -0.5 : 0.5]}>
-            <coneGeometry args={[0.12, 0.45, 6]} />
-            <meshStandardMaterial color={theme.enemyBody} roughness={0.5} />
-          </mesh>
-        ))}
     </group>
   );
 }
 
-/** Global: a hooded latency wraith ringed by a slow packet halo (boss: the Shadow Admin). */
+/** Global: the Shadow Admin, a hooded wraith ringed by a slow packet halo. */
 function WraithBody(props: BodyProps): JSX.Element {
-  const { theme, isBoss } = props;
+  const { theme } = props;
   const haloRef = useRef<Mesh>(null);
   useFrame((_, delta) => {
     if (haloRef.current !== null) {
@@ -166,7 +155,7 @@ function WraithBody(props: BodyProps): JSX.Element {
       </mesh>
       <mesh position={[0, 0.85, 0]}>
         <sphereGeometry args={[0.42, 20, 16]} />
-        <meshStandardMaterial color={isBoss ? '#020617' : theme.enemyBody} roughness={0.6} />
+        <meshStandardMaterial color="#020617" roughness={0.6} />
       </mesh>
       {[-0.14, 0.14].map((x) => (
         <mesh key={x} position={[x, 0.9, 0.36]}>
@@ -182,7 +171,7 @@ function WraithBody(props: BodyProps): JSX.Element {
   );
 }
 
-/** Serverless & Data: a three-headed backlog hydra (boss: the Data Swamp). */
+/** Serverless & Data: the Data Swamp, a three-headed backlog hydra. */
 function HydraBody(props: BodyProps): JSX.Element {
   const { theme } = props;
   const headsRef = useRef<Group>(null);
@@ -219,16 +208,16 @@ function HydraBody(props: BodyProps): JSX.Element {
   );
 }
 
-/** Vertex AI: an all-seeing oracle eye orbited by glitch cubes (boss: the Hallucinator). */
+/** Vertex AI: the Hallucinator, an all-seeing oracle eye orbited by glitch cubes. */
 function OracleBody(props: BodyProps): JSX.Element {
-  const { theme, isBoss } = props;
+  const { theme } = props;
   const orbitRef = useRef<Group>(null);
   useFrame((_, delta) => {
     if (orbitRef.current !== null) {
       orbitRef.current.rotation.y += delta * 1.1;
     }
   });
-  const cubes = isBoss ? 8 : 5;
+  const cubes = 8;
   return (
     <group>
       <mesh castShadow>

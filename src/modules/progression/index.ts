@@ -14,7 +14,6 @@ export {
   calculateTotalStars,
   countBossesDefeated,
   createEmptyProgress,
-  isBossUnlocked,
   deriveArchitectRank,
   mergeScenarioCompletion,
 } from './domain/progress';

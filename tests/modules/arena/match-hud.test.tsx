@@ -7,23 +7,8 @@ import { InMemoryProgressRepository } from '../../../src/modules/progression';
 
 const catalog = createStaticCatalogRepository();
 
-function renderArena(options: { readonly unlockedBoss?: boolean; readonly rivalStepDelayMs?: number } = {}) {
-  const progress = new InMemoryProgressRepository(
-    options.unlockedBoss === true
-      ? {
-          lastBlueprintId: 'arc-101-regional-web',
-          records: {
-            'arc-101-regional-web': {
-              blueprintId: 'arc-101-regional-web',
-              bestStars: 1,
-              bestScore: 120,
-              completedCount: 1,
-              bossDefeated: false,
-            },
-          },
-        }
-      : undefined,
-  );
+function renderArena(options: { readonly rivalStepDelayMs?: number } = {}) {
+  const progress = new InMemoryProgressRepository();
   return render(
     <ArenaWorkbench
       catalogRepository={catalog}
@@ -46,9 +31,9 @@ describe('Match HUD: Rival tray, bosses, incidents, and turn playback', () => {
     expect(screen.getByLabelText(/^Deck: \d+ cards$/)).toBeDefined();
   });
 
-  it('names the track enemy in the Rival tray', () => {
+  it('names the track boss in the Rival tray', () => {
     renderArena();
-    expect(screen.getByRole('region', { name: 'Rack Gremlin tray' })).toBeDefined();
+    expect(screen.getByRole('region', { name: 'The Monolith tray' })).toBeDefined();
   });
 
   it('lets the player discard freely and draws back to 6 at the start of the next turn', () => {
@@ -75,18 +60,16 @@ describe('Match HUD: Rival tray, bosses, incidents, and turn playback', () => {
     expect(screen.getAllByRole('button', { name: /^(Provision|Select Service|Select Shield)/ })).toHaveLength(6);
   });
 
-  it('keeps the boss locked until the blueprint has been completed once', () => {
+  it('offers only Battle and Study, with no separate boss mode', () => {
     renderArena();
-    const lockedBoss = screen.getByRole('button', { name: /Boss/ });
-    expect((lockedBoss as HTMLButtonElement).disabled).toBe(true);
+    const modes = screen.getByRole('group', { name: 'Arena Mode' });
+    expect([...modes.querySelectorAll('button')].map((b) => b.textContent)).toEqual(['Battle', 'Study']);
   });
 
-  it('launches a boss battle once unlocked', () => {
-    renderArena({ unlockedBoss: true });
-    fireEvent.click(screen.getByRole('button', { name: /Boss/ }));
-    expect(screen.getByRole('region', { name: 'The Monolith tray' })).toBeDefined();
-    expect(screen.getByText(/BOSS BATTLE — The Monolith/)).toBeDefined();
-    expect(screen.getByText(/Next Cloud Incident in/).textContent).toContain('1 turn');
+  it('opens every battle against the track boss, at a gentle pace on Associate blueprints', () => {
+    renderArena();
+    expect(screen.getByText(/vs The Monolith, Fifteen-Year-Old On-Prem Mainframe/)).toBeDefined();
+    expect(screen.getByText(/Next Cloud Incident in/).textContent).toContain('2 turns');
   });
 
   it('plays the Rival turn out step by step and locks the hand meanwhile', () => {

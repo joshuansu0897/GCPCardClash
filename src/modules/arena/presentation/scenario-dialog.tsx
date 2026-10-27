@@ -4,9 +4,9 @@
 
 import { type JSX, useRef, useState } from 'react';
 
-import { type BossProfile, resolveBossForTrack, resolveRivalForTrack } from '../../battle';
+import { resolveRivalForTrack } from '../../battle';
 import type { ArchitectureBlueprint, TrackId, TrackInfo } from '../../catalog';
-import { type CampaignProgress, isBossUnlocked } from '../../progression';
+import type { CampaignProgress } from '../../progression';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 import type { PlayMode } from './use-arena-controller';
 import { useNativeModalDialog } from './use-modal-dialog';
@@ -60,7 +60,6 @@ export function ScenarioCatalogDialog(props: ScenarioDialogProps): JSX.Element {
             isCurrent={bp.id === activeBlueprintId}
             stars={progress.records[bp.id]?.bestStars ?? 0}
             bestScore={progress.records[bp.id]?.bestScore ?? 0}
-            bossUnlocked={isBossUnlocked(progress, bp.id)}
             bossDefeated={progress.records[bp.id]?.bossDefeated ?? false}
             onLaunch={(mode) => onSelectScenario(bp.id, mode)}
           />
@@ -103,13 +102,11 @@ function ScenarioBlueprintTile(props: {
   readonly isCurrent: boolean;
   readonly stars: 0 | 1 | 2 | 3;
   readonly bestScore: number;
-  readonly bossUnlocked: boolean;
   readonly bossDefeated: boolean;
   readonly onLaunch: (mode: PlayMode) => void;
 }): JSX.Element {
   const { blueprint, isCurrent, stars, bestScore, onLaunch } = props;
-  const boss = resolveBossForTrack(blueprint.trackId);
-  const rival = resolveRivalForTrack(blueprint.trackId, 'standard');
+  const rival = resolveRivalForTrack(blueprint.trackId);
 
   return (
     <article className={isCurrent ? 'scenario-tile is-current' : 'scenario-tile'}>
@@ -131,37 +128,23 @@ function ScenarioBlueprintTile(props: {
         </span>
         {props.bossDefeated && (
           <span className="spec-tag is-boss-defeated">
-            <TechnicalIcon name="crown" size={12} /> {boss.name} defeated
+            <TechnicalIcon name="crown" size={12} /> {rival.name} defeated
           </span>
         )}
       </div>
 
-      <ScenarioTileActions boss={boss} bossUnlocked={props.bossUnlocked} onLaunch={onLaunch} />
+      <ScenarioTileActions onLaunch={onLaunch} />
     </article>
   );
 }
 
-function ScenarioTileActions(props: {
-  readonly boss: BossProfile;
-  readonly bossUnlocked: boolean;
-  readonly onLaunch: (mode: PlayMode) => void;
-}): JSX.Element {
-  const { boss, bossUnlocked, onLaunch } = props;
+function ScenarioTileActions(props: { readonly onLaunch: (mode: PlayMode) => void }): JSX.Element {
+  const { onLaunch } = props;
 
   return (
     <div className="scenario-tile-actions">
       <button type="button" className="tile-primary-btn" onClick={() => onLaunch('battle')}>
         Start Battle
-      </button>
-      <button
-        type="button"
-        className="tile-boss-btn"
-        disabled={!bossUnlocked}
-        title={bossUnlocked ? `${boss.name} — ${boss.epithet}` : 'Finish this blueprint once to unlock its boss'}
-        onClick={() => onLaunch('boss')}
-      >
-        <TechnicalIcon name={bossUnlocked ? 'crown' : 'lock'} size={14} />
-        <span>{bossUnlocked ? `Boss: ${boss.name}` : 'Boss Locked'}</span>
       </button>
       <button type="button" className="tile-secondary-btn" onClick={() => onLaunch('study')}>
         Study Blueprint

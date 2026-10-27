@@ -6,16 +6,20 @@ import type { ArchitectureBlueprint, CatalogCard } from '../../../catalog';
 import { planRivalTurn } from '../../domain/ai-rival';
 import { readSide, writeSide } from '../../domain/architect-side';
 import { MAX_TURN_ENERGY, dealScenarioDeck, drawUpToHandLimit } from '../../domain/deck-rules';
-import { drawIncidentForTurn, strikeIncident } from '../../domain/incident-rules';
+import {
+  GENTLE_INCIDENT_CADENCE,
+  SHARP_INCIDENT_CADENCE,
+  drawIncidentForTurn,
+  strikeIncident,
+} from '../../domain/incident-rules';
 import type {
   ArenaMode,
   MatchState,
-  RivalProfile,
   SlotDeployment,
   TurnAction,
 } from '../../domain/match-types';
 import { appendLog } from '../../domain/placement-rules';
-import { resolveBossForTrack, resolveRivalForTrack } from '../../domain/rival-roster';
+import { resolveRivalForTrack, rivalTierFor } from '../../domain/rival-roster';
 import { performCardAction } from '../../domain/turn-actions';
 
 const RIVAL_DECK_SEED_OFFSET = 7919;
@@ -24,13 +28,11 @@ export interface StartMatchOptions {
   readonly blueprint: ArchitectureBlueprint;
   readonly allCards: readonly CatalogCard[];
   readonly mode: ArenaMode;
-  readonly rivalProfile?: RivalProfile;
   readonly seed?: number;
 }
 
 export function startScenarioMatch(options: StartMatchOptions): MatchState {
   const { blueprint, allCards, mode, seed = 202610 } = options;
-  const rivalProfile: RivalProfile = mode === 'study' ? 'standard' : (options.rivalProfile ?? 'standard');
 
   const slots: Record<string, SlotDeployment> = {};
   for (const slot of blueprint.slots) {
@@ -46,12 +48,12 @@ export function startScenarioMatch(options: StartMatchOptions): MatchState {
   // Both architects draw from the same scenario card pool, shuffled independently
   const deal = dealScenarioDeck(blueprint, allCards, seed);
   const rivalDeal = dealScenarioDeck(blueprint, allCards, seed + RIVAL_DECK_SEED_OFFSET, 'rival');
-  const logs = appendLog([], 1, 'system', buildOpeningLogEntry(blueprint, mode, rivalProfile));
+  const logs = appendLog([], 1, 'system', buildOpeningLogEntry(blueprint, mode));
 
   return {
     blueprintId: blueprint.id,
     mode,
-    rivalProfile,
+    rivalTier: rivalTierFor(blueprint.difficulty),
     seed,
     turn: 1,
     maxEnergy: MAX_TURN_ENERGY,
@@ -76,7 +78,7 @@ export function startScenarioMatch(options: StartMatchOptions): MatchState {
   };
 }
 
-function buildOpeningLogEntry(blueprint: ArchitectureBlueprint, mode: ArenaMode, rivalProfile: RivalProfile) {
+function buildOpeningLogEntry(blueprint: ArchitectureBlueprint, mode: ArenaMode) {
   if (mode === 'study') {
     return {
       severity: 'system' as const,
@@ -86,20 +88,12 @@ function buildOpeningLogEntry(blueprint: ArchitectureBlueprint, mode: ArenaMode,
     };
   }
 
-  const rival = resolveRivalForTrack(blueprint.trackId, rivalProfile);
-  if (rivalProfile === 'boss') {
-    return {
-      severity: 'rival' as const,
-      headline: `BOSS BATTLE — ${rival.name}, ${rival.epithet}`,
-      detail: `"${rival.intro}" Incidents strike every 2 turns, including ${rival.name}'s signature move.`,
-      pointsDelta: 0,
-    };
-  }
-
+  const rival = resolveRivalForTrack(blueprint.trackId);
+  const cadence = rivalTierFor(blueprint.difficulty) === 'sharp' ? SHARP_INCIDENT_CADENCE : GENTLE_INCIDENT_CADENCE;
   return {
     severity: 'rival' as const,
-    headline: `${blueprint.code} ${blueprint.title} — vs ${rival.name}`,
-    detail: `"${rival.intro}" Play Provisioning for Energy, deploy matching GCP Services onto open slots, and attach Security Shields!`,
+    headline: `${blueprint.code} ${blueprint.title} — vs ${rival.name}, ${rival.epithet}`,
+    detail: `"${rival.intro}" Incidents strike every ${cadence} turns, including ${rival.name}'s signature move.`,
     pointsDelta: 0,
   };
 }
@@ -158,7 +152,6 @@ function startNextTurn(state: MatchState, blueprint: ArchitectureBlueprint): Mat
     drawUpToHandLimit(player.hand, player.drawPile, player.discardPile, upkeep.seed * 13 + turn),
   );
 
-  const signature = state.rivalProfile === 'boss' ? resolveBossForTrack(blueprint.trackId).signatureIncidentId : null;
-  const incident = drawIncidentForTurn(next, turn, signature);
+  const incident = drawIncidentForTurn(next, turn, resolveRivalForTrack(blueprint.trackId).signatureIncidentId);
   return incident !== null ? strikeIncident(next, blueprint, incident) : next;
 }

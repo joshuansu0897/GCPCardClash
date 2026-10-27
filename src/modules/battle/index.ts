@@ -9,7 +9,7 @@ export type {
   MatchOutcome,
   MatchState,
   PlayerActor,
-  RivalProfile,
+  RivalTier,
   SlotDeployment,
   TurnAction,
   TurnLogEntry,
@@ -40,19 +40,14 @@ export type {
   RoundModifiers,
 } from './domain/incident-rules';
 export {
-  BOSS_INCIDENT_CADENCE,
+  GENTLE_INCIDENT_CADENCE,
   INCIDENT_DECK,
-  STANDARD_INCIDENT_CADENCE,
+  SHARP_INCIDENT_CADENCE,
   getIncidentCard,
 } from './domain/incident-rules';
 
-export type { BossProfile, RivalPersona } from './domain/rival-roster';
-export {
-  BOSS_ROSTER,
-  STANDARD_RIVALS,
-  resolveBossForTrack,
-  resolveRivalForTrack,
-} from './domain/rival-roster';
+export type { RivalPersona } from './domain/rival-roster';
+export { RIVAL_ROSTER, resolveRivalForTrack, rivalTierFor } from './domain/rival-roster';
 
 export type { StartMatchOptions } from './application/usecases/play-match';
 export {

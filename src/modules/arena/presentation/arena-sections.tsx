@@ -6,7 +6,7 @@
 
 import type { ComponentType, JSX } from 'react';
 
-import { BOSS_INCIDENT_CADENCE, type MatchState, STANDARD_INCIDENT_CADENCE, getIncidentCard } from '../../battle';
+import { GENTLE_INCIDENT_CADENCE, type MatchState, SHARP_INCIDENT_CADENCE, getIncidentCard } from '../../battle';
 import { deriveArchitectRank } from '../../progression';
 import { type BoardRendererProps, type BoardView, BoardViewSwitch, type ViewInsets } from './board-view-switch';
 import { MatchDebriefDialog, RulesReferenceDialog } from './debrief-and-rules-dialogs';
@@ -31,7 +31,6 @@ export function ArenaHeaderSection(props: SectionProps & {
   return (
     <FlightHeader
       mode={ctrl.playMode}
-      bossUnlocked={ctrl.bossUnlocked}
       turn={matchState.turn}
       playerScore={matchState.playerScore}
       rivalScore={matchState.rivalScore}
@@ -146,7 +145,7 @@ export function ArenaOverlays(props: SectionProps & { readonly showTurnBanner: b
         rival={ctrl.rival}
         hidden={!props.showTurnBanner || matchState.mode === 'study' || matchState.status === 'completed'}
       />
-      <IncidentAnnouncement incident={ctrl.announcedIncident} boss={ctrl.boss} onDismiss={ctrl.dismissIncident} />
+      <IncidentAnnouncement incident={ctrl.announcedIncident} rival={ctrl.rival} onDismiss={ctrl.dismissIncident} />
       <ArenaDialogs ctrl={ctrl} />
     </>
   );
@@ -188,12 +187,12 @@ function turnsUntilNextIncident(state: MatchState): number | null {
   if (state.mode === 'study' || state.status === 'completed') {
     return null;
   }
-  const cadence = state.rivalProfile === 'boss' ? BOSS_INCIDENT_CADENCE : STANDARD_INCIDENT_CADENCE;
+  const cadence = state.rivalTier === 'sharp' ? SHARP_INCIDENT_CADENCE : GENTLE_INCIDENT_CADENCE;
   const remainder = state.turn % cadence;
   return remainder === 0 ? cadence : cadence - remainder;
 }
 
-/** Shell classes shared by both layouts: the track's palette and the boss-battle treatment. */
+/** Shell classes shared by both layouts: the track's palette. */
 export function shellClassName(ctrl: ArenaControllerState, extra = ''): string {
-  return `workbench-shell track-${ctrl.activeBlueprint.trackId} ${ctrl.playMode === 'boss' ? 'is-boss-battle' : ''} ${extra}`.trim();
+  return `workbench-shell track-${ctrl.activeBlueprint.trackId} ${extra}`.trim();
 }

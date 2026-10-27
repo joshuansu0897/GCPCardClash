@@ -5,7 +5,7 @@
 
 import { type CSSProperties, type JSX, useEffect } from 'react';
 
-import { type BossProfile, HAND_LIMIT, type IncidentCard, type MatchState, type RivalPersona } from '../../battle';
+import { HAND_LIMIT, type IncidentCard, type MatchState, type RivalPersona } from '../../battle';
 import type { TrackId } from '../../catalog';
 import { TechnicalIcon, type TechnicalIconName } from '../../../shared/gcp-icons';
 
@@ -31,18 +31,17 @@ export function RivalDock(props: RivalDockProps): JSX.Element | null {
     return null;
   }
 
-  const isBoss = rival.profile === 'boss';
   const handCount = matchState.rivalHand.length;
   const mid = (handCount - 1) / 2;
 
   return (
     <section
-      className={`rival-dock rival-track-${rival.trackId} ${isBoss ? 'is-boss' : ''} ${isActing ? 'is-acting' : ''}`}
+      className={`rival-dock rival-track-${rival.trackId} ${isActing ? 'is-acting' : ''}`}
       aria-label={`${rival.name} tray`}
     >
       <div className="rival-identity">
         <span className="rival-avatar" aria-hidden="true">
-          <TechnicalIcon name={isBoss ? 'crown' : TRACK_ENEMY_ICON[rival.trackId]} size={20} />
+          <TechnicalIcon name={TRACK_ENEMY_ICON[rival.trackId]} size={20} />
         </span>
         <div className="rival-name-block">
           <span className="rival-name">{rival.name}</span>
@@ -134,10 +133,10 @@ export function IncidentTicker(props: {
 
 export function IncidentAnnouncement(props: {
   readonly incident: IncidentCard | null;
-  readonly boss: BossProfile | null;
+  readonly rival: RivalPersona;
   readonly onDismiss: () => void;
 }): JSX.Element | null {
-  const { incident, boss, onDismiss } = props;
+  const { incident, rival, onDismiss } = props;
 
   useEffect(() => {
     if (incident === null) {
@@ -151,7 +150,7 @@ export function IncidentAnnouncement(props: {
     return null;
   }
 
-  const isSignature = boss !== null && boss.signatureIncidentId === incident.id;
+  const isSignature = rival.signatureIncidentId === incident.id;
 
   // A toast, not a modal: the incident itself is playing out on the board right now
   return (
@@ -163,10 +162,10 @@ export function IncidentAnnouncement(props: {
       >
         <span className="incident-kicker">
           <TechnicalIcon name={isSignature ? 'crown' : 'alert'} size={16} />
-          {isSignature ? `${boss.name} — Signature Incident` : 'Cloud Incident'}
+          {isSignature ? `${rival.name} — Signature Incident` : 'Cloud Incident'}
         </span>
         <h2 className="incident-title">{incident.title}</h2>
-        <p className="incident-flavor">{isSignature ? `"${boss.taunt}"` : incident.flavor}</p>
+        <p className="incident-flavor">{isSignature ? `"${rival.taunt}"` : incident.flavor}</p>
         <p className="incident-rule">{incident.rule}</p>
         <p className="incident-lesson">
           <TechnicalIcon name="book" size={13} /> {incident.lesson}

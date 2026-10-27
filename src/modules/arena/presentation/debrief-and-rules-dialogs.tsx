@@ -4,11 +4,11 @@
 
 import { type JSX, useRef } from 'react';
 
-import { type MatchOutcome, type MatchState, type RivalPersona, resolveBossForTrack, resolveRivalForTrack } from '../../battle';
+import { type MatchOutcome, type MatchState, type RivalPersona, resolveRivalForTrack } from '../../battle';
 import type { ArchitectureBlueprint } from '../../catalog';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 import { StarRatingRow } from './scenario-dialog';
-import { type PlayMode, resolvePlayMode } from './use-arena-controller';
+import type { PlayMode } from './use-arena-controller';
 import { useNativeModalDialog } from './use-modal-dialog';
 
 export interface DebriefDialogProps {
@@ -58,10 +58,10 @@ export function MatchDebriefDialog(props: DebriefDialogProps): JSX.Element {
 
 function RivalVerdict(props: { readonly rival: RivalPersona; readonly outcome: MatchOutcome }): JSX.Element {
   const { rival, outcome } = props;
-  const won = rival.profile === 'boss' ? outcome.bossDefeated : outcome.winner === 'player';
+  const won = outcome.bossDefeated;
   return (
-    <div className={`boss-verdict ${won ? 'is-victory' : 'is-defeat'} ${rival.profile === 'boss' ? '' : 'is-standard'}`}>
-      <TechnicalIcon name={rival.profile === 'boss' ? 'crown' : 'alert'} size={22} />
+    <div className={`boss-verdict ${won ? 'is-victory' : 'is-defeat'}`}>
+      <TechnicalIcon name="crown" size={22} />
       <div>
         <strong>{won ? `${rival.name} Defeated!` : `${rival.name} Prevails`}</strong>
         <p>"{won ? rival.defeatLine : rival.taunt}"</p>
@@ -78,13 +78,13 @@ function DebriefMetricsBody(props: {
   readonly onOpenCatalog: () => void;
 }): JSX.Element {
   const { blueprint, matchState, outcome, onReplay, onOpenCatalog } = props;
-  const playMode = resolvePlayMode(matchState);
-  const boss = resolveBossForTrack(blueprint.trackId);
+  const playMode = matchState.mode;
+  const rival = resolveRivalForTrack(blueprint.trackId);
 
   return (
     <div className="debrief-content">
       {playMode !== 'study' && (
-        <RivalVerdict rival={resolveRivalForTrack(blueprint.trackId, matchState.rivalProfile)} outcome={outcome} />
+        <RivalVerdict rival={rival} outcome={outcome} />
       )}
       <div className="debrief-verdict-row">
         <StarRatingRow stars={outcome.stars} />
@@ -103,30 +103,23 @@ function DebriefMetricsBody(props: {
         <p className="synthesis-copy">{blueprint.solutionSummary}</p>
       </div>
 
-      <DebriefActionsRow playMode={playMode} bossName={boss.name} onReplay={onReplay} onOpenCatalog={onOpenCatalog} />
+      <DebriefActionsRow rivalName={rival.name} onReplay={onReplay} onOpenCatalog={onOpenCatalog} />
     </div>
   );
 }
 
 function DebriefActionsRow(props: {
-  readonly playMode: PlayMode;
-  readonly bossName: string;
+  readonly rivalName: string;
   readonly onReplay: (mode: PlayMode) => void;
   readonly onOpenCatalog: () => void;
 }): JSX.Element {
-  const { playMode, onReplay, onOpenCatalog } = props;
+  const { onReplay, onOpenCatalog } = props;
 
   return (
     <div className="debrief-actions-row">
-      <button type="button" className="tile-primary-btn" onClick={() => onReplay(playMode === 'boss' ? 'boss' : 'battle')}>
-        {playMode === 'boss' ? `Rematch ${props.bossName}` : 'Replay Battle'}
+      <button type="button" className="tile-primary-btn" onClick={() => onReplay('battle')}>
+        Rematch {props.rivalName}
       </button>
-      {playMode === 'battle' && (
-        <button type="button" className="tile-boss-btn" onClick={() => onReplay('boss')}>
-          <TechnicalIcon name="crown" size={14} />
-          <span>Challenge {props.bossName}</span>
-        </button>
-      )}
       <button type="button" className="tile-secondary-btn" onClick={() => onReplay('study')}>
         Inspect in Study Mode
       </button>
@@ -202,10 +195,10 @@ function ManualRulesList(): JSX.Element {
         <strong>6. Discard Freely:</strong> Discard as many cards as you like during your turn — it costs nothing. You do not draw right away: at the start of your next turn you draw back up to 6 cards (the discard pile is reshuffled when your deck runs out).
       </li>
       <li>
-        <strong>7. Cloud Incidents:</strong> Every 3 turns (every 2 against a boss) an incident strikes BOTH architects and plays out on the board — meteor showers knock out a zone, scanner ships sweep your nodes, credits rain down, lightning hits the AI tier. Some bend the rules for that turn only.
+        <strong>7. Cloud Incidents:</strong> Every 3 turns (every 2 on Professional and Specialist blueprints) an incident strikes BOTH architects and plays out on the board — meteor showers knock out a zone, scanner ships sweep your nodes, credits rain down, lightning hits the AI tier. Some bend the rules for that turn only.
       </li>
       <li>
-        <strong>8. Track Enemies & Bosses:</strong> Each track has its own world and enemy — the Rack Gremlin haunts Foundations, the Latency Wraith stalks Global & Hybrid, the Backlog Hydra floods Serverless & Data, and the Drift Sprite warps Vertex AI. Finish a blueprint once to unlock its track boss. Bosses follow the same rules, but chain moves, capture from Turn 2, and bring a signature incident.
+        <strong>8. Track Bosses:</strong> Each track has its own world and one boss — The Monolith guards Foundations, the Shadow Admin stalks Global & Hybrid, the Data Swamp floods Serverless & Data, and the Hallucinator warps Vertex AI. Every boss follows your rules and mixes its signature incident into every second strike. On Associate blueprints it plays gently; on Professional and Specialist blueprints it chains moves and captures from Turn 2.
       </li>
     </ol>
   );

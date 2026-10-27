@@ -83,11 +83,6 @@ export function deriveArchitectRank(totalStars: number): ArchitectRank {
   return 'Cloud Explorer';
 }
 
-/** A blueprint's boss unlocks once its standard battle has been completed at least once. */
-export function isBossUnlocked(progress: CampaignProgress, blueprintId: string): boolean {
-  return (progress.records[blueprintId]?.bestStars ?? 0) > 0;
-}
-
 export function countBossesDefeated(progress: CampaignProgress): number {
   return Object.values(progress.records).filter((rec) => rec.bossDefeated).length;
 }

@@ -3,20 +3,22 @@ import { describe, expect, it } from 'vitest';
 import {
   HAND_LIMIT,
   type MatchState,
+  type RivalTier,
   type SlotDeployment,
   getIncidentCard,
   performMatchAction,
   quoteServiceCost,
   quoteShieldCost,
-  resolveBossForTrack,
   resolveEndTurnSequence,
+  resolveRivalForTrack,
+  rivalTierFor,
   startScenarioMatch,
 } from '../../../src/modules/battle';
 import { drawIncidentForTurn, strikeIncident } from '../../../src/modules/battle/domain/incident-rules';
 import { evaluateMatchOutcome } from '../../../src/modules/battle/domain/scoring';
 import { createStaticCatalogRepository, loadCurriculumOverview } from '../../../src/modules/catalog';
 
-describe('Fair Rival, bosses, and Cloud Incidents', () => {
+describe('Fair Rival, track bosses, and Cloud Incidents', () => {
   const catalog = createStaticCatalogRepository();
   const { cardsById } = loadCurriculumOverview(catalog);
   const allCards = catalog.listCards();
@@ -29,8 +31,11 @@ describe('Fair Rival, bosses, and Cloud Incidents', () => {
     throw new Error('Expected two slots');
   }
 
-  const start = (profile: 'standard' | 'boss' = 'standard', seed = 11): MatchState =>
-    startScenarioMatch({ blueprint, allCards, mode: 'battle', rivalProfile: profile, seed });
+  // WHY: the tier normally comes from the blueprint; overriding it tests both tactics on one board
+  const start = (tier: RivalTier = 'gentle', seed = 11): MatchState => ({
+    ...startScenarioMatch({ blueprint, allCards, mode: 'battle', seed }),
+    rivalTier: tier,
+  });
 
   const endTurn = (state: MatchState): MatchState =>
     performMatchAction(state, blueprint, cardsById, { type: 'end-turn' });
@@ -85,7 +90,7 @@ describe('Fair Rival, bosses, and Cloud Incidents', () => {
     });
 
     it('returns one state per Rival action and settles on the next turn', () => {
-      const steps = resolveEndTurnSequence(start('boss'), blueprint, cardsById);
+      const steps = resolveEndTurnSequence(start('sharp'), blueprint, cardsById);
       expect(steps.length).toBeGreaterThanOrEqual(2);
       expect(steps[steps.length - 1]?.turn).toBe(2);
       expect(steps.slice(0, -1).every((s) => s.turn === 1)).toBe(true);
@@ -93,25 +98,25 @@ describe('Fair Rival, bosses, and Cloud Incidents', () => {
   });
 
   describe('incident cadence', () => {
-    it('strikes on Turn 3 in a standard battle and Turn 2 in a boss battle', () => {
-      const standard = endTurn(start('standard'));
-      expect(standard.incident).toBeNull();
-      expect(endTurn(standard).incident?.turn).toBe(3);
+    it('strikes on Turn 3 against a gentle enemy and Turn 2 against a sharp one', () => {
+      const gentle = endTurn(start('gentle'));
+      expect(gentle.incident).toBeNull();
+      expect(endTurn(gentle).incident?.turn).toBe(3);
 
-      expect(endTurn(start('boss')).incident?.turn).toBe(2);
+      expect(endTurn(start('sharp')).incident?.turn).toBe(2);
     });
 
-    it('plays the boss signature incident on every second strike', () => {
-      const signature = resolveBossForTrack(blueprint.trackId).signatureIncidentId;
-      const boss = start('boss');
+    it('plays the enemy signature incident on every second strike', () => {
+      const signature = resolveRivalForTrack(blueprint.trackId).signatureIncidentId;
+      const boss = start('sharp');
       expect(drawIncidentForTurn(boss, 2, signature)?.id).not.toBe(signature);
       expect(drawIncidentForTurn(boss, 3, signature)).toBeNull();
       expect(drawIncidentForTurn(boss, 4, signature)?.id).toBe(signature);
       expect(drawIncidentForTurn(boss, 8, signature)?.id).toBe(signature);
     });
 
-    it('lets an outmatched passive player lose to a boss within a few turns', () => {
-      let state = start('boss');
+    it('lets an outmatched passive player lose to a sharp enemy within a few turns', () => {
+      let state = start('sharp');
       for (let i = 0; i < 6 && state.status === 'active'; i += 1) {
         state = endTurn(state);
       }
@@ -192,9 +197,23 @@ describe('Fair Rival, bosses, and Cloud Incidents', () => {
     });
   });
 
-  it('marks a player victory over a boss as a boss defeat', () => {
-    const won = { ...start('boss'), playerScore: 400, rivalScore: 100 };
+  it('counts any battle win as defeating the track boss', () => {
+    const won = { ...start('gentle'), playerScore: 400, rivalScore: 100 };
     expect(evaluateMatchOutcome(won).bossDefeated).toBe(true);
-    expect(evaluateMatchOutcome({ ...won, rivalProfile: 'standard' }).bossDefeated).toBe(false);
+    expect(evaluateMatchOutcome({ ...won, rivalTier: 'sharp' }).bossDefeated).toBe(true);
+    expect(evaluateMatchOutcome({ ...won, playerScore: 50 }).bossDefeated).toBe(false);
+  });
+
+  it('sets the enemy tier from the blueprint difficulty', () => {
+    expect(rivalTierFor('Associate')).toBe('gentle');
+    expect(rivalTierFor('Professional')).toBe('sharp');
+    expect(rivalTierFor('Specialist')).toBe('sharp');
+    expect(start().rivalTier).toBe('gentle');
+
+    const professional = catalog.listBlueprints().find((bp) => bp.difficulty === 'Professional');
+    if (professional === undefined) {
+      throw new Error('Expected a Professional blueprint');
+    }
+    expect(startScenarioMatch({ blueprint: professional, allCards, mode: 'battle' }).rivalTier).toBe('sharp');
   });
 });

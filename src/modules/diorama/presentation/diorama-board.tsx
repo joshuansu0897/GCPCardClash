@@ -14,6 +14,7 @@ import { type IslandLayout, PAD_SIZE, computeIslandLayout } from '../domain/boar
 import { resolvePadAffordance } from '../domain/pad-affordance';
 import { type TrackTheme, resolveTrackTheme } from '../domain/track-theme';
 import { DioramaScene } from './diorama-scene';
+import { ENEMY_SCALE } from './rival-avatar';
 import { type ViewInsets, computeBoardFrame } from '../domain/camera-fit';
 import { type LabelAnchor, PadLabel, useLabelRegistry } from './label-overlay';
 import { nowSec, usePrefersReducedMotion } from './motion';
@@ -23,11 +24,8 @@ const EFFECT_STAGGER_SEC = 0.4;
 type LabelBinder = ReturnType<typeof useLabelRegistry>['bind'];
 /** The enemy hovers just off the island's front-left edge, facing the board. */
 const RIVAL_HOVER_HEIGHT = 1.8;
-const RIVAL_SIDE_GAP = 1.3;
+const RIVAL_SIDE_GAP = 1.8;
 const RIVAL_DEPTH = 0.6;
-/** Bosses are drawn half again as large, so they hover a little further out. */
-const BOSS_SIDE_GAP = 1.8;
-const BOSS_SCALE = 1.55;
 
 export interface DioramaBoardProps {
   readonly blueprint: ArchitectureBlueprint;
@@ -46,7 +44,7 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
   const stage = useDioramaStage(blueprint, matchState);
   const { layout, theme, hasRival } = stage;
   const { registry, bind } = useLabelRegistry();
-  const rival = resolveRivalForTrack(blueprint.trackId, matchState.rivalProfile);
+  const rival = resolveRivalForTrack(blueprint.trackId);
 
   return (
     <section
@@ -93,14 +91,13 @@ function useDioramaStage(blueprint: ArchitectureBlueprint, matchState: MatchStat
   const reducedMotion = usePrefersReducedMotion();
   const { effects, popDelays, dismissEffect } = useBoardEventQueue(matchState, reducedMotion);
   const hasRival = matchState.mode !== 'study';
-  const isBoss = matchState.rivalProfile === 'boss';
   const rivalAnchor = useMemo(
-    () => [-layout.islandSize[0] / 2 - (isBoss ? BOSS_SIDE_GAP : RIVAL_SIDE_GAP), RIVAL_HOVER_HEIGHT, RIVAL_DEPTH] as const,
-    [layout, isBoss],
+    () => [-layout.islandSize[0] / 2 - RIVAL_SIDE_GAP, RIVAL_HOVER_HEIGHT, RIVAL_DEPTH] as const,
+    [layout],
   );
   const cameraFrame = useMemo(
-    () => computeBoardFrame(layout, hasRival ? { anchor: rivalAnchor, scale: isBoss ? BOSS_SCALE : 1 } : null),
-    [layout, hasRival, rivalAnchor, isBoss],
+    () => computeBoardFrame(layout, hasRival ? { anchor: rivalAnchor, scale: ENEMY_SCALE } : null),
+    [layout, hasRival, rivalAnchor],
   );
   const labelAnchors = useMemo(() => computeLabelAnchors(layout, rivalAnchor), [layout, rivalAnchor]);
   const theme = resolveTrackTheme(blueprint.trackId);
@@ -148,10 +145,7 @@ function DioramaLabels(props: {
   return (
     <div className="diorama-labels">
       {rivalName !== null && (
-        <span
-          ref={bind('rival')}
-          className={`rival-nameplate ${matchState.rivalProfile === 'boss' ? 'is-boss' : ''}`}
-        >
+        <span ref={bind('rival')} className="rival-nameplate">
           {rivalName}
         </span>
       )}

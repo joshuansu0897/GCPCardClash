@@ -36,7 +36,7 @@ describe('Immersive 3D HUD', () => {
 
     expect(container.querySelector('.workbench-shell.is-immersive')).not.toBeNull();
     expect(screen.getByTestId('fake-3d').dataset.hasInsets).toBe('true');
-    expect(screen.getByRole('region', { name: 'Rack Gremlin tray' })).toBeDefined();
+    expect(screen.getByRole('region', { name: 'The Monolith tray' })).toBeDefined();
     expect(screen.getByRole('region', { name: 'Architect Card Hand' })).toBeDefined();
     expect(screen.getByLabelText(/^Energy \d of 6$/)).toBeDefined();
     expect(screen.getByRole('button', { name: 'End Turn' })).toBeDefined();

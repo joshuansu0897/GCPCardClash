@@ -1,6 +1,6 @@
 /**
  * Cloud Incident event deck. Incidents strike both architects symmetrically at the start of a
- * turn on a fixed cadence (every 3 turns, every 2 in a boss battle) and either apply an instant
+ * turn on a fixed cadence (every 3 turns, every 2 against a sharp enemy) and either apply an instant
  * effect or bend the rules for the rest of that turn. Draws are seeded and fully deterministic.
  */
 
@@ -10,8 +10,8 @@ import { createSeededRandom } from './deck-rules';
 import type { MatchState, SlotDeployment } from './match-types';
 import { appendLog } from './turn-log';
 
-export const STANDARD_INCIDENT_CADENCE = 3;
-export const BOSS_INCIDENT_CADENCE = 2;
+export const GENTLE_INCIDENT_CADENCE = 3;
+export const SHARP_INCIDENT_CADENCE = 2;
 
 export type IncidentTone = 'boon' | 'hazard' | 'twist';
 
@@ -57,8 +57,8 @@ export interface IncidentCard {
   readonly effects: readonly IncidentEffect[];
   readonly modifiers?: RoundModifiers;
   readonly manifestation: IncidentManifestation;
-  /** Signature incidents only appear in their boss's battles. */
-  readonly bossOnly?: boolean;
+  /** Signature incidents only appear as their track enemy's signature strike. */
+  readonly signatureOnly?: boolean;
 }
 
 export const INCIDENT_DECK: readonly IncidentCard[] = [
@@ -143,7 +143,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
     manifestation: { kind: 'sky-fall', palette: 'ice', target: 'island', particle: 'shard' },
     title: 'Mainframe Change Freeze',
     tone: 'hazard',
-    bossOnly: true,
+    signatureOnly: true,
     flavor: 'The Monolith declares a freeze: nothing moves without a 6-week CAB review.',
     rule: 'This turn, capturing a node costs 1 more Energy.',
     lesson: 'Heavy change control slows remediation as much as it slows attackers.',
@@ -155,7 +155,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
     manifestation: { kind: 'flyover', palette: 'shadow', target: 'island' },
     title: 'Privilege Escalation',
     tone: 'hazard',
-    bossOnly: true,
+    signatureOnly: true,
     flavor: 'Shadow Admin finds an owner-role key in a public repo.',
     rule: 'Every shield that is NOT the recommended control is stripped from its node.',
     lesson: 'The wrong control gives a false sense of safety — match the control to the threat.',
@@ -166,7 +166,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
     manifestation: { kind: 'sky-fall', palette: 'toxic', target: 'data', particle: 'goo' },
     title: 'Schema Drift',
     tone: 'hazard',
-    bossOnly: true,
+    signatureOnly: true,
     flavor: 'The Data Swamp silently renames half the columns overnight.',
     rule: 'Unshielded nodes in Data zones cost their owner 25.',
     lesson: 'Governed datasets (Dataplex, VPC-SC perimeters) keep pipelines trustworthy.',
@@ -177,7 +177,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
     manifestation: { kind: 'lightning', palette: 'glitch', target: 'affected-zone' },
     title: 'Prompt Injection Wave',
     tone: 'hazard',
-    bossOnly: true,
+    signatureOnly: true,
     flavor: 'The Hallucinator floods every endpoint with jailbreak payloads.',
     rule: 'Unshielded nodes in AI zones go offline (return to OPEN) and each owner loses 30.',
     lesson: 'Model Armor, IAP, and VPC-SC belong in front of every generative endpoint.',
@@ -199,12 +199,12 @@ export function getActiveModifiers(state: MatchState): RoundModifiers {
 }
 
 export function incidentCadence(state: MatchState): number {
-  return state.rivalProfile === 'boss' ? BOSS_INCIDENT_CADENCE : STANDARD_INCIDENT_CADENCE;
+  return state.rivalTier === 'sharp' ? SHARP_INCIDENT_CADENCE : GENTLE_INCIDENT_CADENCE;
 }
 
 /**
  * Picks the incident for `turn`, or `null` when no incident is due.
- * Boss battles alternate between the boss's signature incident and the general deck.
+ * Strikes alternate between the enemy's signature incident and the general deck.
  */
 export function drawIncidentForTurn(
   state: MatchState,
@@ -219,7 +219,7 @@ export function drawIncidentForTurn(
   if (signatureIncidentId !== null && strike % 2 === 0) {
     return getIncidentCard(signatureIncidentId) ?? null;
   }
-  const general = INCIDENT_DECK.filter((card) => card.bossOnly !== true);
+  const general = INCIDENT_DECK.filter((card) => card.signatureOnly !== true);
   const rand = createSeededRandom(state.seed * 31 + turn * 7919);
   return general[Math.floor(rand() * general.length)] ?? null;
 }

@@ -636,17 +636,11 @@ dialog::backdrop {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: #ffffff;
-  background: rgba(127, 29, 29, 0.88);
-  border: 1px solid #f87171;
+  color: #fde68a;
+  background: linear-gradient(90deg, #7c2d12, #78350f);
+  border: 1px solid #fbbf24;
   border-radius: var(--radius-pill);
   box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.6);
-}
-
-.rival-nameplate.is-boss {
-  background: linear-gradient(90deg, #7c2d12, #78350f);
-  border-color: #fbbf24;
-  color: #fde68a;
 }
 
 .diorama-hint {

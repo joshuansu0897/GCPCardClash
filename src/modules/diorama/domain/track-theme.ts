@@ -5,7 +5,7 @@
 
 import type { TrackId } from '../../catalog';
 
-/** One creature family per track; the boss is the larger, crowned elder of the same family. */
+/** One creature family per track, drawn as that track's crowned boss. */
 export type EnemyForm = 'rack' | 'wraith' | 'hydra' | 'oracle';
 
 export interface TrackTheme {

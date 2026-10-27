@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  BOSS_ROSTER,
   HAND_LIMIT,
   INCIDENT_DECK,
   type MatchState,
-  STANDARD_RIVALS,
+  RIVAL_ROSTER,
   performMatchAction,
   resolveRivalForTrack,
   startScenarioMatch,
@@ -91,27 +90,22 @@ describe('Discard rules, track rivals, and incident manifestations', () => {
   describe('track rivals', () => {
     const tracks = catalog.listTracks().map((t) => t.id);
 
-    it('gives every track its own everyday Rival and its own boss', () => {
-      expect(new Set(STANDARD_RIVALS.map((r) => r.trackId))).toEqual(new Set(tracks));
-      expect(new Set(BOSS_ROSTER.map((r) => r.trackId))).toEqual(new Set(tracks));
-      const names = [...STANDARD_RIVALS, ...BOSS_ROSTER].map((r) => r.name);
-      expect(new Set(names).size).toBe(names.length);
+    it('gives every track exactly one enemy, its boss', () => {
+      expect(RIVAL_ROSTER).toHaveLength(tracks.length);
+      expect(new Set(RIVAL_ROSTER.map((r) => r.trackId))).toEqual(new Set(tracks));
     });
 
-    it('resolves the persona that matches the match profile', () => {
+    it('resolves each track to its boss and a real signature incident', () => {
+      const incidentIds = new Set(INCIDENT_DECK.map((card) => card.id));
       for (const trackId of tracks) {
-        const everyday = resolveRivalForTrack(trackId, 'standard');
-        const boss = resolveRivalForTrack(trackId, 'boss');
-        expect(everyday.trackId).toBe(trackId);
-        expect(everyday.profile).toBe('standard');
-        expect(everyday.signatureIncidentId).toBeNull();
-        expect(boss.profile).toBe('boss');
-        expect(boss.signatureIncidentId).not.toBeNull();
+        const rival = resolveRivalForTrack(trackId);
+        expect(rival.trackId).toBe(trackId);
+        expect(incidentIds.has(rival.signatureIncidentId)).toBe(true);
       }
     });
 
-    it('introduces the track Rival in the opening log', () => {
-      expect(start().logs[0]?.headline).toContain(resolveRivalForTrack(blueprint.trackId, 'standard').name);
+    it('introduces the track boss in the opening log', () => {
+      expect(start().logs[0]?.headline).toContain(resolveRivalForTrack(blueprint.trackId).name);
     });
   });
 

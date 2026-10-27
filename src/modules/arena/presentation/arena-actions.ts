@@ -104,8 +104,7 @@ function makeScenarioLauncher(s: SessionState, deps: ControllerDeps) {
       startScenarioMatch({
         blueprint: target,
         allCards: s.allCards,
-        mode: mode === 'study' ? 'study' : 'battle',
-        rivalProfile: mode === 'boss' ? 'boss' : 'standard',
+        mode,
         seed,
       }),
     );

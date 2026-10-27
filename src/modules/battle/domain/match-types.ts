@@ -7,8 +7,8 @@ export type PlayerActor = 'player' | 'rival';
 
 export type ArenaMode = 'battle' | 'study';
 
-/** `standard` is the everyday Rival Architect; `boss` is a track boss with sharper tactics and its own incidents. */
-export type RivalProfile = 'standard' | 'boss';
+/** How sharply the track's enemy plays: `gentle` on Associate blueprints, `sharp` on harder ones. */
+export type RivalTier = 'gentle' | 'sharp';
 
 export type TurnLogSeverity =
   | 'deploy'
@@ -62,7 +62,7 @@ export interface ActiveIncident {
 export interface MatchState {
   readonly blueprintId: string;
   readonly mode: ArenaMode;
-  readonly rivalProfile: RivalProfile;
+  readonly rivalTier: RivalTier;
   readonly seed: number;
   readonly turn: number;
   readonly maxEnergy: number;

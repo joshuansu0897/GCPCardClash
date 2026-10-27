@@ -4,13 +4,11 @@
  */
 
 import {
-  type BossProfile,
   type HandCardInstance,
   type IncidentCard,
   type MatchState,
   type RivalPersona,
   getIncidentCard,
-  resolveBossForTrack,
   resolveRivalForTrack,
 } from '../../battle';
 import type {
@@ -24,13 +22,12 @@ import {
   type CampaignProgress,
   type ProgressRepository,
   calculateTotalStars,
-  isBossUnlocked,
 } from '../../progression';
 import { createControllerActions } from './arena-actions';
 import { useArenaSessionState } from './arena-session-state';
 
-/** What the player chose to play: a standard battle, the blueprint's boss, or guided study. */
-export type PlayMode = 'battle' | 'boss' | 'study';
+/** What the player chose to play: a battle against the track's enemy, or guided study. */
+export type PlayMode = 'battle' | 'study';
 
 export interface ArenaControllerState {
   readonly curriculum: CurriculumOverview;
@@ -39,10 +36,8 @@ export interface ArenaControllerState {
   readonly activeBlueprint: ArchitectureBlueprint;
   readonly matchState: MatchState;
   readonly playMode: PlayMode;
-  /** The track's opponent for this match (its everyday Rival, or its boss). */
+  /** The track's one enemy, its boss. */
   readonly rival: RivalPersona;
-  readonly boss: BossProfile | null;
-  readonly bossUnlocked: boolean;
   readonly rivalActing: boolean;
   readonly announcedIncident: IncidentCard | null;
   readonly selectedInstanceId: string | null;
@@ -64,12 +59,6 @@ export interface ArenaControllerState {
   readonly handleEndTurn: () => void;
 }
 
-export function resolvePlayMode(state: MatchState): PlayMode {
-  if (state.mode === 'study') {
-    return 'study';
-  }
-  return state.rivalProfile === 'boss' ? 'boss' : 'battle';
-}
 
 export function useArenaController(
   catalogRepository: CatalogRepository,
@@ -85,7 +74,6 @@ export function useArenaController(
     { catalogRepository, progressRepository, rivalStepDelayMs, nextSeed },
     { item: selectedHandItem, card: selectedCard },
   );
-  const playMode = resolvePlayMode(s.matchState);
 
   return {
     curriculum: s.curriculum,
@@ -93,10 +81,8 @@ export function useArenaController(
     totalStars: calculateTotalStars(s.progress),
     activeBlueprint: s.activeBlueprint,
     matchState: s.matchState,
-    playMode,
-    rival: resolveRivalForTrack(s.activeBlueprint.trackId, s.matchState.rivalProfile),
-    boss: playMode === 'boss' ? resolveBossForTrack(s.activeBlueprint.trackId) : null,
-    bossUnlocked: isBossUnlocked(s.progress, s.activeBlueprint.id),
+    playMode: s.matchState.mode,
+    rival: resolveRivalForTrack(s.activeBlueprint.trackId),
     rivalActing: s.rivalActing,
     announcedIncident: s.announcedIncidentId !== null ? (getIncidentCard(s.announcedIncidentId) ?? null) : null,
     selectedInstanceId: s.selectedInstanceId,

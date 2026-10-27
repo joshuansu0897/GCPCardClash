@@ -79,7 +79,8 @@ export function evaluateMatchOutcome(state: MatchState): MatchOutcome {
   // Resolve winner and 1-3 star mastery criteria
   const winner = resolveWinner(state.playerScore, state.rivalScore);
   const stars = computeBattleStars(winner, state.playerMistakes, shieldedPlayerNodes);
-  const bossDefeated = state.rivalProfile === 'boss' && winner === 'player';
+  // WHY: every track's enemy is its boss, so any battle win defeats it
+  const bossDefeated = winner === 'player';
   const summary = bossDefeated
     ? `Boss defeated! ${formatOutcomeSummary(winner, stars, state.playerMistakes, shieldedPlayerNodes)}`
     : formatOutcomeSummary(winner, stars, state.playerMistakes, shieldedPlayerNodes);

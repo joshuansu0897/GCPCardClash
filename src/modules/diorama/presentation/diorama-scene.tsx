@@ -91,7 +91,6 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
       {props.rivalAnchor !== null && (
         <RivalAvatar
           theme={theme}
-          isBoss={matchState.rivalProfile === 'boss'}
           position={props.rivalAnchor}
           effects={props.effects}
           reducedMotion={props.reducedMotion}

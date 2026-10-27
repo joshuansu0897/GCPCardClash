@@ -3,16 +3,16 @@
  * only play cards it holds, paying the same costs as the player through `performCardAction`.
  * A turn is returned as a list of intermediate states so the UI can play it out step by step.
  *
- * Profiles differ only in tactics, never in rules:
- * - `standard` deploys once and shields once per turn, claiming open slots in blueprint order.
- * - `boss` chains several moves, captures from Turn 2, and picks the highest-value target.
+ * Tiers differ only in tactics, never in rules:
+ * - `gentle` deploys once and shields once per turn, claiming open slots in blueprint order.
+ * - `sharp` chains several moves, captures from Turn 2, and picks the highest-value target.
  */
 
 import type { ArchitectureBlueprint, ArchitectureSlot, CatalogCard, ServiceCard, ShieldCard } from '../../catalog';
 import { readSide, writeSide } from './architect-side';
 import { incidentDeployBonus, quoteServiceCost, quoteShieldCost } from './cost-rules';
 import { drawUpToHandLimit } from './deck-rules';
-import type { HandCardInstance, MatchState, RivalProfile } from './match-types';
+import type { HandCardInstance, MatchState, RivalTier } from './match-types';
 import { logAction } from './placement-rules';
 import {
   CAPTURE_SWING_BONUS,
@@ -30,9 +30,9 @@ interface RivalTactics {
   readonly optimize: boolean;
 }
 
-const TACTICS: Readonly<Record<RivalProfile, RivalTactics>> = {
-  standard: { maxDeploys: 1, maxShields: 1, maxDiscards: 1, captureFromTurn: 3, optimize: false },
-  boss: { maxDeploys: 3, maxShields: 2, maxDiscards: 6, captureFromTurn: 2, optimize: true },
+const TACTICS: Readonly<Record<RivalTier, RivalTactics>> = {
+  gentle: { maxDeploys: 1, maxShields: 1, maxDiscards: 1, captureFromTurn: 3, optimize: false },
+  sharp: { maxDeploys: 3, maxShields: 2, maxDiscards: 6, captureFromTurn: 2, optimize: true },
 };
 
 const MAX_ACTIONS_PER_TURN = 16;
@@ -68,7 +68,7 @@ export function planRivalTurn(
     return [];
   }
 
-  const tactics = TACTICS[state.rivalProfile];
+  const tactics = TACTICS[state.rivalTier];
   const counters: TurnCounters = { deploys: 0, shields: 0, discards: 0 };
   const steps: MatchState[] = [];
   let working = beginRivalTurn(state);
