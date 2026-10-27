@@ -1,30 +1,37 @@
 /**
- * R3F scene graph for the Cloud Diorama: lighting, fitted camera rig, floating island,
- * slot pads, flow roads, and transient VFX. Rendered inside `<Canvas>` by `DioramaBoard`.
+ * R3F scene graph for the Cloud Diorama: track-themed lighting and sky, fitted camera rig,
+ * floating island, slot pads, flow roads, the track's enemy, and transient VFX. Rendered inside `<Canvas>` by `DioramaBoard`.
  */
 
-import { OrbitControls } from '@react-three/drei';
+import { OrbitControls, Sparkles } from '@react-three/drei';
 import { useFrame, useThree } from '@react-three/fiber';
 import { type JSX, type ReactNode, useEffect, useRef } from 'react';
 import { type Group, MathUtils, PerspectiveCamera, Vector3 } from 'three';
 
-import type { MatchState } from '../../battle';
+import { type MatchState, getIncidentCard } from '../../battle';
 import type { ArchitectureBlueprint, CatalogCard } from '../../catalog';
 import type { IslandLayout } from '../domain/board-layout';
+import type { TrackTheme } from '../domain/track-theme';
 import { resolvePadAffordance } from '../domain/pad-affordance';
 import { FloatingIsland, SkyClouds } from './floating-island';
 import { type LabelAnchor, LabelProjector, type LabelRegistry } from './label-overlay';
 import { nowSec } from './motion';
+import { RivalAvatar } from './rival-avatar';
 import { RoadFlowPipes } from './road-flow-pipes';
 import { SlotPad } from './slot-pad';
 import { type ActiveEffect, TOSS_DURATION_SEC, VfxLayer } from './vfx-layer';
 
 const CAMERA_DIRECTION = new Vector3(0, 0.62, 0.8).normalize();
 const SHAKE_WINDOW_SEC = 0.32;
+/** Incidents that rattle the island while they hit: [start, end] seconds after the strike. */
+const RUMBLE_WINDOW_SEC = [0.8, 3.2] as const;
 
 export interface DioramaSceneProps {
   readonly blueprint: ArchitectureBlueprint;
   readonly layout: IslandLayout;
+  readonly theme: TrackTheme;
+  /** Where the track's enemy hovers; `null` hides it (Guided Study has no opponent). */
+  readonly rivalAnchor: readonly [number, number, number] | null;
   readonly matchState: MatchState;
   readonly cardsById: Readonly<Record<string, CatalogCard>>;
   readonly selectedHandCard: CatalogCard | undefined;
@@ -40,16 +47,18 @@ export interface DioramaSceneProps {
 }
 
 export function DioramaScene(props: DioramaSceneProps): JSX.Element {
-  const { layout, matchState, blueprint } = props;
+  const { layout, matchState, blueprint, theme } = props;
   const slotsById = new Map(blueprint.slots.map((s) => [s.id, s]));
+  const [width, depth] = layout.islandSize;
 
   return (
     <>
-      <hemisphereLight args={['#E0F2FE', '#FDE68A', 0.85]} />
+      <hemisphereLight args={[theme.hemisphereSky, theme.hemisphereGround, 0.85]} />
       <ambientLight intensity={0.25} />
       <directionalLight
+        color={theme.sunColor}
         position={[9, 16, 8]}
-        intensity={1.7}
+        intensity={theme.sunIntensity}
         castShadow
         shadow-mapSize={[1024, 1024]}
         shadow-camera-left={-14}
@@ -63,7 +72,12 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
       <LabelProjector anchors={props.labelAnchors} registry={props.labelRegistry} />
 
       <IslandRoot effects={props.effects} reducedMotion={props.reducedMotion}>
-        <FloatingIsland size={layout.islandSize} terraces={layout.terraces} reducedMotion={props.reducedMotion} />
+        <FloatingIsland
+          size={layout.islandSize}
+          terraces={layout.terraces}
+          theme={theme}
+          reducedMotion={props.reducedMotion}
+        />
         <RoadFlowPipes roads={layout.roads} slots={matchState.slots} reducedMotion={props.reducedMotion} />
 
         {layout.pads.map((pad) => {
@@ -92,12 +106,37 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
         <VfxLayer
           effects={props.effects}
           padsBySlotId={layout.padsBySlotId}
+          terraces={layout.terraces}
+          islandWidth={width}
           cardsById={props.cardsById}
           onDone={props.onEffectDone}
         />
       </IslandRoot>
 
-      <SkyClouds spread={layout.islandSize[0]} reducedMotion={props.reducedMotion} />
+      {props.rivalAnchor !== null && (
+        <RivalAvatar
+          theme={theme}
+          isBoss={matchState.rivalProfile === 'boss'}
+          position={props.rivalAnchor}
+          effects={props.effects}
+          reducedMotion={props.reducedMotion}
+        />
+      )}
+
+      <Sparkles
+        count={props.reducedMotion ? 0 : theme.ambient.count}
+        scale={[width + 8, 9, depth + 8]}
+        position={[0, 2.5, 0]}
+        size={theme.ambient.size}
+        speed={theme.ambient.speed}
+        color={theme.ambient.color}
+      />
+      <SkyClouds
+        spread={width}
+        color={theme.cloud}
+        opacity={theme.cloudOpacity}
+        reducedMotion={props.reducedMotion}
+      />
     </>
   );
 }
@@ -121,6 +160,14 @@ function IslandRoot(props: {
     const now = nowSec();
     let shake = 0;
     for (const { event, startsAt } of props.effects) {
+      if (event.type === 'incident-struck') {
+        const kind = getIncidentCard(event.incidentId)?.manifestation.kind;
+        const since = now - startsAt;
+        if ((kind === 'meteor-shower' || kind === 'lightning') && since > RUMBLE_WINDOW_SEC[0] && since < RUMBLE_WINDOW_SEC[1]) {
+          shake = Math.max(shake, 0.05);
+        }
+        continue;
+      }
       if (event.type !== 'card-deployed' && event.type !== 'slot-captured') {
         continue;
       }

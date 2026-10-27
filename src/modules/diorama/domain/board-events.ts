@@ -29,6 +29,14 @@ export type BoardEvent =
       readonly owner: PlayerActor;
       readonly matchedRecommendation: boolean;
     }
+  | {
+      readonly id: string;
+      readonly type: 'incident-struck';
+      readonly incidentId: string;
+      readonly affectedZoneId: string | null;
+      /** Pads the incident knocked offline or stripped of their shield, in blueprint order. */
+      readonly struckSlotIds: readonly string[];
+    }
   | { readonly id: string; readonly type: 'energy-gained'; readonly amount: number }
   | { readonly id: string; readonly type: 'mistake'; readonly count: number }
   | { readonly id: string; readonly type: 'turn-advanced'; readonly turn: number }
@@ -79,6 +87,23 @@ export function diffBoardEvents(previous: MatchState | null, next: MatchState): 
     }
   }
 
+  if (next.incident !== null && !isSameIncident(previous, next)) {
+    events.push({
+      id: `${stamp}:incident:${next.incident.incidentId}`,
+      type: 'incident-struck',
+      incidentId: next.incident.incidentId,
+      affectedZoneId: next.incident.affectedZoneId,
+      struckSlotIds: Object.keys(next.slots).filter((slotId) => {
+        const before = previous.slots[slotId];
+        const after = next.slots[slotId];
+        return (
+          (before?.owner != null && after?.owner == null) ||
+          (before?.shieldCardId != null && after?.shieldCardId == null && after?.owner === before.owner)
+        );
+      }),
+    });
+  }
+
   if (next.turn === previous.turn && next.playerEnergy > previous.playerEnergy) {
     events.push({ id: `${stamp}:energy`, type: 'energy-gained', amount: next.playerEnergy - previous.playerEnergy });
   }
@@ -93,6 +118,15 @@ export function diffBoardEvents(previous: MatchState | null, next: MatchState): 
   }
 
   return events;
+}
+
+function isSameIncident(previous: MatchState, next: MatchState): boolean {
+  return (
+    previous.incident !== null &&
+    next.incident !== null &&
+    previous.incident.incidentId === next.incident.incidentId &&
+    previous.incident.turn === next.incident.turn
+  );
 }
 
 function isNewMatch(previous: MatchState, next: MatchState): boolean {

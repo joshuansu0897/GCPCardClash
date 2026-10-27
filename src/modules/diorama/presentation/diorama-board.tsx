@@ -4,20 +4,24 @@
  */
 
 import { Canvas } from '@react-three/fiber';
-import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type JSX, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import type { MatchState } from '../../battle';
+import { type MatchState, resolveRivalForTrack } from '../../battle';
 import type { ArchitectureBlueprint, CatalogCard } from '../../catalog';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 import { type BoardEvent, diffBoardEvents } from '../domain/board-events';
 import { type IslandLayout, PAD_SIZE, computeIslandLayout } from '../domain/board-layout';
 import { resolvePadAffordance } from '../domain/pad-affordance';
+import { resolveTrackTheme } from '../domain/track-theme';
 import { DioramaScene } from './diorama-scene';
 import { type LabelAnchor, PadLabel, useLabelRegistry } from './label-overlay';
 import { nowSec, usePrefersReducedMotion } from './motion';
 import { type ActiveEffect, TOSS_DURATION_SEC } from './vfx-layer';
 
 const EFFECT_STAGGER_SEC = 0.4;
+/** The enemy hovers behind the island's far edge, above the skyline. */
+const RIVAL_HOVER_HEIGHT = 1.5;
+const RIVAL_BACKOFF = 1.9;
 
 export interface DioramaBoardProps {
   readonly blueprint: ArchitectureBlueprint;
@@ -34,8 +38,20 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
   const layout = useMemo(() => computeIslandLayout(blueprint), [blueprint]);
   const reducedMotion = usePrefersReducedMotion();
   const { effects, popDelays, dismissEffect } = useBoardEventQueue(matchState, reducedMotion);
-  const labelAnchors = useMemo(() => computeLabelAnchors(layout), [layout]);
+  const theme = resolveTrackTheme(blueprint.trackId);
+  const hasRival = matchState.mode !== 'study';
+  const rival = resolveRivalForTrack(blueprint.trackId, matchState.rivalProfile);
+  const rivalAnchor = useMemo(
+    () => [0, RIVAL_HOVER_HEIGHT, -layout.islandSize[1] / 2 - RIVAL_BACKOFF] as const,
+    [layout],
+  );
+  const labelAnchors = useMemo(() => computeLabelAnchors(layout, rivalAnchor), [layout, rivalAnchor]);
   const { registry, bind } = useLabelRegistry();
+  const stageStyle = {
+    '--stage-sky-top': theme.skyTop,
+    '--stage-sky-bottom': theme.skyBottom,
+    '--stage-ink': theme.skyInk,
+  } as CSSProperties;
 
   return (
     <section className="drafting-sheet diorama-sheet" aria-label="3D Architecture Diorama Playboard">
@@ -52,7 +68,7 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
       <p className="workload-brief">{blueprint.workloadBrief}</p>
       <DioramaGuidance selectedHandCard={props.selectedHandCard} mode={matchState.mode} />
 
-      <div className="diorama-stage">
+      <div className={`diorama-stage theme-${theme.trackId}`} style={stageStyle} data-theme-name={theme.name}>
         <Canvas
           shadows="percentage"
           dpr={[1, 2]}
@@ -62,6 +78,8 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
           <DioramaScene
             blueprint={blueprint}
             layout={layout}
+            theme={theme}
+            rivalAnchor={hasRival ? rivalAnchor : null}
             matchState={matchState}
             cardsById={props.cardsById}
             selectedHandCard={props.selectedHandCard}
@@ -78,6 +96,14 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
         </Canvas>
 
         <div className="diorama-labels">
+          {hasRival && (
+            <span
+              ref={bind('rival')}
+              className={`rival-nameplate ${matchState.rivalProfile === 'boss' ? 'is-boss' : ''}`}
+            >
+              {rival.name}
+            </span>
+          )}
           {layout.terraces.map((terrace) => (
             <span key={terrace.zoneId} ref={bind(`zone:${terrace.zoneId}`)} className={`zone-flag zone-ink-${terrace.ink}`}>
               {terrace.label}
@@ -106,8 +132,12 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
   );
 }
 
-function computeLabelAnchors(layout: IslandLayout): readonly LabelAnchor[] {
+function computeLabelAnchors(
+  layout: IslandLayout,
+  rivalAnchor: readonly [number, number, number],
+): readonly LabelAnchor[] {
   return [
+    { id: 'rival', position: [rivalAnchor[0] + 2.6, rivalAnchor[1] + 0.4, rivalAnchor[2]] as const },
     ...layout.terraces.map((t) => ({
       id: `zone:${t.zoneId}`,
       position: [t.center[0], 0, layout.islandSize[1] / 2 - 0.15] as const,
@@ -123,6 +153,7 @@ const VISUAL_EVENTS: ReadonlySet<BoardEvent['type']> = new Set([
   'card-deployed',
   'slot-captured',
   'shield-locked',
+  'incident-struck',
   'match-completed',
 ]);
 

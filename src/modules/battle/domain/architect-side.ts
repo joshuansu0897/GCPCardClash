@@ -12,7 +12,6 @@ export interface ArchitectSide {
   readonly hand: readonly HandCardInstance[];
   readonly drawPile: readonly HandCardInstance[];
   readonly discardPile: readonly HandCardInstance[];
-  readonly discardsRemaining: number;
 }
 
 export function opponentOf(actor: PlayerActor): PlayerActor {
@@ -28,7 +27,6 @@ export function readSide(state: MatchState, actor: PlayerActor): ArchitectSide {
       hand: state.hand,
       drawPile: state.drawPile,
       discardPile: state.discardPile,
-      discardsRemaining: state.discardsRemaining,
     };
   }
   return {
@@ -38,7 +36,6 @@ export function readSide(state: MatchState, actor: PlayerActor): ArchitectSide {
     hand: state.rivalHand,
     drawPile: state.rivalDrawPile,
     discardPile: state.rivalDiscardPile,
-    discardsRemaining: state.rivalDiscardsRemaining,
   };
 }
 
@@ -53,7 +50,6 @@ export function writeSide(state: MatchState, actor: PlayerActor, patch: Partial<
       hand: merged.hand,
       drawPile: merged.drawPile,
       discardPile: merged.discardPile,
-      discardsRemaining: merged.discardsRemaining,
     };
   }
   return {
@@ -64,7 +60,6 @@ export function writeSide(state: MatchState, actor: PlayerActor, patch: Partial<
     rivalHand: merged.hand,
     rivalDrawPile: merged.drawPile,
     rivalDiscardPile: merged.discardPile,
-    rivalDiscardsRemaining: merged.discardsRemaining,
   };
 }
 

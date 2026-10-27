@@ -1,0 +1,208 @@
+/* 2D incident effects over the drafting-sheet fallback: meteors, sky-fall, lightning, packet storms, flyovers */
+
+.sheet-fx-host {
+  position: relative;
+}
+
+.incident-fx-2d {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+  border-radius: var(--radius-sm);
+  animation: fx-life 3.6s linear forwards;
+}
+
+@keyframes fx-life {
+  0% { opacity: 0; }
+  6%, 82% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+
+.fx-palette-fire { --fx-main: #f97316; --fx-accent: #fde047; }
+.fx-palette-ice { --fx-main: #38bdf8; --fx-accent: #f0f9ff; }
+.fx-palette-gold { --fx-main: #eab308; --fx-accent: #fef9c3; }
+.fx-palette-toxic { --fx-main: #65a30d; --fx-accent: #d9f99d; }
+.fx-palette-neon { --fx-main: #06b6d4; --fx-accent: #a5f3fc; }
+.fx-palette-scan { --fx-main: #22c55e; --fx-accent: #bbf7d0; }
+.fx-palette-shadow { --fx-main: #7c3aed; --fx-accent: #c4b5fd; }
+.fx-palette-glitch { --fx-main: #d946ef; --fx-accent: #f5d0fe; }
+
+.fx-bit {
+  position: absolute;
+  animation-delay: var(--fx-delay);
+  animation-fill-mode: both;
+}
+
+/* Meteor shower: burning streaks raking across the sheet */
+.fx-meteor-shower .fx-bit {
+  top: -80px;
+  left: calc(var(--fx-x) - 20%);
+  width: 7px;
+  height: 70px;
+  background: linear-gradient(180deg, transparent, var(--fx-accent) 60%, var(--fx-main));
+  border-radius: 4px;
+  box-shadow: 0 0 14px 2px var(--fx-main);
+  animation-name: fx-meteor;
+  animation-duration: 0.9s;
+  animation-timing-function: ease-in;
+}
+
+@keyframes fx-meteor {
+  from { transform: translate(0, 0) rotate(-32deg); }
+  to { transform: translate(38cqh, 115cqh) rotate(-32deg); opacity: 0.3; }
+}
+
+/* Sky-fall: coins, snow, ice shards, or goo drifting down */
+.fx-sky-fall .fx-bit {
+  top: -16px;
+  left: var(--fx-x);
+  width: 8px;
+  height: 8px;
+  background: var(--fx-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--fx-main);
+  animation-name: fx-fall;
+  animation-duration: 1.8s;
+  animation-timing-function: linear;
+}
+
+.fx-particle-snow .fx-bit {
+  border: 1px solid var(--fx-main);
+}
+
+.fx-particle-coin .fx-bit {
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle at 35% 35%, #fef9c3, var(--fx-main) 60%, #a16207);
+  border: 1px solid #a16207;
+}
+
+.fx-particle-shard .fx-bit {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.fx-particle-goo .fx-bit {
+  width: 11px;
+  height: 14px;
+  background: var(--fx-main);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+}
+
+@keyframes fx-fall {
+  from { transform: translateY(0) rotate(0deg); }
+  to { transform: translateY(calc(100cqh + 32px)) rotate(300deg); }
+}
+
+/* Lightning: jagged bolts flashing down while the sheet flickers */
+.fx-lightning {
+  animation-name: fx-life, fx-storm-flash;
+  animation-duration: 3.6s, 0.9s;
+  animation-timing-function: linear, steps(1);
+  animation-iteration-count: 1, 3;
+}
+
+@keyframes fx-storm-flash {
+  0%, 100% { background: transparent; }
+  10% { background: color-mix(in srgb, var(--fx-main) 18%, transparent); }
+}
+
+.fx-lightning .fx-bit {
+  top: 0;
+  left: var(--fx-x);
+  width: 46px;
+  height: 75%;
+  background: linear-gradient(180deg, var(--fx-accent), var(--fx-main));
+  clip-path: polygon(48% 0, 62% 0, 50% 30%, 70% 30%, 38% 66%, 54% 66%, 30% 100%, 36% 62%, 20% 62%, 42% 30%, 26% 30%);
+  filter: drop-shadow(0 0 8px var(--fx-main));
+  animation-name: fx-bolt;
+  animation-duration: 0.5s;
+  animation-timing-function: steps(1);
+}
+
+@keyframes fx-bolt {
+  0%, 100% { opacity: 0; }
+  10%, 45% { opacity: 1; }
+  30% { opacity: 0.2; }
+}
+
+/* Packet stream: a surge of traffic racing through */
+.fx-packet-stream .fx-bit {
+  top: var(--fx-y);
+  left: -40px;
+  width: 26px;
+  height: 5px;
+  background: var(--fx-accent);
+  border-radius: 3px;
+  box-shadow: 0 0 10px var(--fx-main);
+  animation-name: fx-stream;
+  animation-duration: 1.1s;
+  animation-timing-function: linear;
+}
+
+@keyframes fx-stream {
+  from { transform: translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  to { transform: translateX(calc(100cqw + 80px)); }
+}
+
+/* Flyover: a scanner ship crossing with its beam on the nodes */
+.fx-ship {
+  position: absolute;
+  top: 12%;
+  left: -170px;
+  width: 140px;
+  height: 30px;
+  background: radial-gradient(ellipse at 50% 30%, #f8fafc, #94a3b8 55%, #334155);
+  border-radius: 50%;
+  box-shadow: 0 8px 22px -6px rgba(0, 0, 0, 0.55);
+  animation: fx-fly 3.3s ease-in-out both;
+}
+
+.fx-palette-shadow .fx-ship {
+  background: radial-gradient(ellipse at 50% 30%, #4b5563, #111827 60%);
+}
+
+.fx-ship::before {
+  content: "";
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 54px;
+  height: 26px;
+  background: radial-gradient(ellipse at 50% 70%, var(--fx-accent), var(--fx-main));
+  border-radius: 50% 50% 0 0;
+  transform: translateX(-50%);
+  opacity: 0.9;
+}
+
+.fx-beam {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 150px;
+  height: 70cqh;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fx-main) 55%, transparent), transparent);
+  clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+  transform: translateX(-50%);
+  animation: fx-beam-pulse 0.25s ease-in-out infinite alternate;
+}
+
+@keyframes fx-fly {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(100cqw + 340px)); }
+}
+
+@keyframes fx-beam-pulse {
+  to { opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .incident-fx-2d {
+    display: none;
+  }
+}

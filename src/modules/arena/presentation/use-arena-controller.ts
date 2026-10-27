@@ -10,9 +10,11 @@ import {
   type HandCardInstance,
   type IncidentCard,
   type MatchState,
+  type RivalPersona,
   getIncidentCard,
   performMatchAction,
   resolveBossForTrack,
+  resolveRivalForTrack,
   resolveEndTurnSequence,
   startScenarioMatch,
 } from '../../battle';
@@ -43,6 +45,8 @@ export interface ArenaControllerState {
   readonly activeBlueprint: ArchitectureBlueprint;
   readonly matchState: MatchState;
   readonly playMode: PlayMode;
+  /** The track's opponent for this match (its everyday Rival, or its boss). */
+  readonly rival: RivalPersona;
   readonly boss: BossProfile | null;
   readonly bossUnlocked: boolean;
   readonly rivalActing: boolean;
@@ -78,6 +82,7 @@ type SessionState = ReturnType<typeof useArenaSessionState>;
 function useArenaSessionState(
   catalogRepository: CatalogRepository,
   progressRepository: ProgressRepository,
+  nextSeed: () => number,
 ) {
   const curriculum = loadCurriculumOverview(catalogRepository);
   const allCards = catalogRepository.listCards();
@@ -86,7 +91,7 @@ function useArenaSessionState(
 
   const [activeBlueprint, setActiveBlueprint] = useState<ArchitectureBlueprint>(initialBp);
   const [matchState, setMatchState] = useState<MatchState>(() =>
-    startScenarioMatch({ blueprint: initialBp, allCards, mode: 'battle' }),
+    startScenarioMatch({ blueprint: initialBp, allCards, mode: 'battle', seed: nextSeed() }),
   );
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [inspectedSlotId, setInspectedSlotId] = useState<string | null>(initialBp.slots[0]?.id ?? null);
@@ -130,8 +135,9 @@ export function useArenaController(
   catalogRepository: CatalogRepository,
   progressRepository: ProgressRepository,
   rivalStepDelayMs: number,
+  nextSeed: () => number,
 ): ArenaControllerState {
-  const s = useArenaSessionState(catalogRepository, progressRepository);
+  const s = useArenaSessionState(catalogRepository, progressRepository, nextSeed);
   const selectedHandItem = s.matchState.hand.find((h) => h.instanceId === s.selectedInstanceId);
   const selectedCard = selectedHandItem ? s.curriculum.cardsById[selectedHandItem.cardId] : undefined;
   const actions = createControllerActions(
@@ -141,6 +147,7 @@ export function useArenaController(
     selectedHandItem,
     selectedCard,
     rivalStepDelayMs,
+    nextSeed,
   );
   const playMode = resolvePlayMode(s.matchState);
 
@@ -151,6 +158,7 @@ export function useArenaController(
     activeBlueprint: s.activeBlueprint,
     matchState: s.matchState,
     playMode,
+    rival: resolveRivalForTrack(s.activeBlueprint.trackId, s.matchState.rivalProfile),
     boss: playMode === 'boss' ? resolveBossForTrack(s.activeBlueprint.trackId) : null,
     bossUnlocked: isBossUnlocked(s.progress, s.activeBlueprint.id),
     rivalActing: s.rivalActing,
@@ -194,6 +202,7 @@ function createControllerActions(
   selectedHandItem: HandCardInstance | undefined,
   selectedCard: CatalogCard | undefined,
   rivalStepDelayMs: number,
+  nextSeed: () => number,
 ) {
   const commitState = makeCommitter(s, progressRepository);
   const clearTimers = (): void => {
@@ -201,7 +210,7 @@ function createControllerActions(
     s.timers.current = [];
   };
 
-  const launchScenario = (blueprintId: string, mode: PlayMode, seed = 202610): void => {
+  const launchScenario = (blueprintId: string, mode: PlayMode, seed = nextSeed()): void => {
     const target = catalogRepository.getBlueprintById(blueprintId) ?? s.activeBlueprint;
     clearTimers();
     s.setRivalActing(false);

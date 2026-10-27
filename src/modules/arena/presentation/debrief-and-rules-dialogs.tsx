@@ -4,7 +4,7 @@
 
 import { type JSX, useRef } from 'react';
 
-import { type BossProfile, type MatchOutcome, type MatchState, resolveBossForTrack } from '../../battle';
+import { type MatchOutcome, type MatchState, type RivalPersona, resolveBossForTrack, resolveRivalForTrack } from '../../battle';
 import type { ArchitectureBlueprint } from '../../catalog';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 import { StarRatingRow } from './scenario-dialog';
@@ -56,14 +56,15 @@ export function MatchDebriefDialog(props: DebriefDialogProps): JSX.Element {
   );
 }
 
-function BossVerdict(props: { readonly boss: BossProfile; readonly outcome: MatchOutcome }): JSX.Element {
-  const { boss, outcome } = props;
+function RivalVerdict(props: { readonly rival: RivalPersona; readonly outcome: MatchOutcome }): JSX.Element {
+  const { rival, outcome } = props;
+  const won = rival.profile === 'boss' ? outcome.bossDefeated : outcome.winner === 'player';
   return (
-    <div className={`boss-verdict ${outcome.bossDefeated ? 'is-victory' : 'is-defeat'}`}>
-      <TechnicalIcon name="crown" size={22} />
+    <div className={`boss-verdict ${won ? 'is-victory' : 'is-defeat'} ${rival.profile === 'boss' ? '' : 'is-standard'}`}>
+      <TechnicalIcon name={rival.profile === 'boss' ? 'crown' : 'alert'} size={22} />
       <div>
-        <strong>{outcome.bossDefeated ? `${boss.name} Defeated!` : `${boss.name} Prevails`}</strong>
-        <p>"{outcome.bossDefeated ? boss.defeatLine : boss.taunt}"</p>
+        <strong>{won ? `${rival.name} Defeated!` : `${rival.name} Prevails`}</strong>
+        <p>"{won ? rival.defeatLine : rival.taunt}"</p>
       </div>
     </div>
   );
@@ -82,7 +83,9 @@ function DebriefMetricsBody(props: {
 
   return (
     <div className="debrief-content">
-      {playMode === 'boss' && <BossVerdict boss={boss} outcome={outcome} />}
+      {playMode !== 'study' && (
+        <RivalVerdict rival={resolveRivalForTrack(blueprint.trackId, matchState.rivalProfile)} outcome={outcome} />
+      )}
       <div className="debrief-verdict-row">
         <StarRatingRow stars={outcome.stars} />
         <p className="debrief-summary-text">{outcome.summary}</p>
@@ -173,13 +176,16 @@ export function RulesReferenceDialog(props: RulesDialogProps): JSX.Element {
           <strong>4. Defense-in-Depth Shields & Slot Capture:</strong> Unshielded nodes can be compromised by the opponent for <code>Cost + 1E</code>. Attach Cloud IAM, Cloud Armor, VPC-SC, KMS, or IAP shields (1E) for +35/+60 points and permanent takeover immunity.
         </li>
         <li>
-          <strong>5. A Fair Rival:</strong> The Rival draws from its own deck under your exact limits — a 6-card hand, +1E per turn up to 6E, 2 cycles per turn, and the same costs. You can see how many cards it holds, never which ones.
+          <strong>5. A Fair Rival:</strong> The Rival draws from its own deck under your exact limits — a 6-card hand, +1E per turn up to 6E, free discards, a draw back to 6 at the start of its turn, and the same costs. You can see how many cards it holds, never which ones.
         </li>
         <li>
-          <strong>6. Cloud Incidents:</strong> Every 3 turns (every 2 against a boss) an incident strikes BOTH architects — budget freezes, zero-days, outages, audits, surges. Read the banner: some bend the rules for that turn only.
+          <strong>6. Discard Freely:</strong> Discard as many cards as you like during your turn — it costs nothing. You do not draw right away: at the start of your next turn you draw back up to 6 cards (the discard pile is reshuffled when your deck runs out).
         </li>
         <li>
-          <strong>7. Bosses:</strong> Finish a blueprint once to unlock its track boss. Bosses follow the same rules, but chain moves, capture from Turn 2, and bring a signature incident.
+          <strong>7. Cloud Incidents:</strong> Every 3 turns (every 2 against a boss) an incident strikes BOTH architects and plays out on the board — meteor showers knock out a zone, scanner ships sweep your nodes, credits rain down, lightning hits the AI tier. Some bend the rules for that turn only.
+        </li>
+        <li>
+          <strong>8. Track Enemies & Bosses:</strong> Each track has its own world and enemy — the Rack Gremlin haunts Foundations, the Latency Wraith stalks Global & Hybrid, the Backlog Hydra floods Serverless & Data, and the Drift Sprite warps Vertex AI. Finish a blueprint once to unlock its track boss. Bosses follow the same rules, but chain moves, capture from Turn 2, and bring a signature incident.
         </li>
       </ol>
     </dialog>

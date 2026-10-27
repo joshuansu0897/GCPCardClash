@@ -1,44 +1,53 @@
 /**
  * In-match HUD pieces: the Rival's tray (hidden hand count, deck, energy), the active
- * incident ticker, the incident announcement card, and the turn-phase banner.
+ * incident ticker, the incident toast, and the turn-phase banner.
  */
 
 import { type CSSProperties, type JSX, useEffect } from 'react';
 
-import { type BossProfile, DISCARDS_PER_TURN, type IncidentCard, type MatchState } from '../../battle';
-import { TechnicalIcon } from '../../../shared/gcp-icons';
+import { type BossProfile, HAND_LIMIT, type IncidentCard, type MatchState, type RivalPersona } from '../../battle';
+import type { TrackId } from '../../catalog';
+import { TechnicalIcon, type TechnicalIconName } from '../../../shared/gcp-icons';
 
-const INCIDENT_AUTO_DISMISS_MS = 5200;
+/** Long enough to read after the incident has played out on the board. */
+const INCIDENT_AUTO_DISMISS_MS = 8000;
+
+const TRACK_ENEMY_ICON: Readonly<Record<TrackId, TechnicalIconName>> = {
+  foundations: 'compute',
+  architect: 'edge',
+  'serverless-data': 'data',
+  'vertex-ai': 'ai',
+};
 
 export interface RivalDockProps {
   readonly matchState: MatchState;
-  readonly boss: BossProfile | null;
+  readonly rival: RivalPersona;
   readonly isActing: boolean;
 }
 
 export function RivalDock(props: RivalDockProps): JSX.Element | null {
-  const { matchState, boss, isActing } = props;
+  const { matchState, rival, isActing } = props;
   if (matchState.mode === 'study') {
     return null;
   }
 
+  const isBoss = rival.profile === 'boss';
   const handCount = matchState.rivalHand.length;
   const mid = (handCount - 1) / 2;
-  const name = boss?.name ?? 'Rival Architect';
 
   return (
     <section
-      className={`rival-dock ${boss !== null ? 'is-boss' : ''} ${isActing ? 'is-acting' : ''}`}
-      aria-label={`${name} tray`}
+      className={`rival-dock rival-track-${rival.trackId} ${isBoss ? 'is-boss' : ''} ${isActing ? 'is-acting' : ''}`}
+      aria-label={`${rival.name} tray`}
     >
       <div className="rival-identity">
         <span className="rival-avatar" aria-hidden="true">
-          <TechnicalIcon name={boss !== null ? 'crown' : 'compute'} size={20} />
+          <TechnicalIcon name={isBoss ? 'crown' : TRACK_ENEMY_ICON[rival.trackId]} size={20} />
         </span>
         <div className="rival-name-block">
-          <span className="rival-name">{name}</span>
+          <span className="rival-name">{rival.name}</span>
           <span className="rival-epithet">
-            {isActing ? <span className="thinking-dots">Playing</span> : (boss?.epithet ?? 'Plays by your exact rules')}
+            {isActing ? <span className="thinking-dots">Playing</span> : rival.epithet}
           </span>
         </div>
       </div>
@@ -76,9 +85,9 @@ export function RivalDock(props: RivalDockProps): JSX.Element | null {
           <dd>{matchState.rivalDiscardPile.length}</dd>
         </div>
         <div>
-          <dt>Cycles</dt>
-          <dd>
-            {matchState.rivalDiscardsRemaining}/{DISCARDS_PER_TURN}
+          <dt>Draws</dt>
+          <dd aria-label={`Rival draws ${HAND_LIMIT - handCount} at the start of its turn`}>
+            +{HAND_LIMIT - handCount}
           </dd>
         </div>
       </dl>
@@ -136,9 +145,14 @@ export function IncidentAnnouncement(props: {
 
   const isSignature = boss !== null && boss.signatureIncidentId === incident.id;
 
+  // A toast, not a modal: the incident itself is playing out on the board right now
   return (
-    <div className="incident-overlay" role="alertdialog" aria-label={`Cloud Incident: ${incident.title}`}>
-      <article className={`incident-card tone-${incident.tone}`}>
+    <div className="incident-toast-host">
+      <article
+        className={`incident-card is-toast tone-${incident.tone}`}
+        role="alert"
+        aria-label={`Cloud Incident: ${incident.title}`}
+      >
         <span className="incident-kicker">
           <TechnicalIcon name={isSignature ? 'crown' : 'alert'} size={16} />
           {isSignature ? `${boss.name} — Signature Incident` : 'Cloud Incident'}
@@ -160,13 +174,13 @@ export function IncidentAnnouncement(props: {
 export function TurnPhaseBanner(props: {
   readonly turn: number;
   readonly rivalActing: boolean;
-  readonly boss: BossProfile | null;
+  readonly rival: RivalPersona;
   readonly hidden: boolean;
 }): JSX.Element | null {
   if (props.hidden) {
     return null;
   }
-  const label = props.rivalActing ? `${props.boss !== null ? props.boss.name : 'Rival'}'s Turn` : `Turn ${props.turn} · Your Move`;
+  const label = props.rivalActing ? `${props.rival.name}'s Turn` : `Turn ${props.turn} · Your Move`;
 
   return (
     <div

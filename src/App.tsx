@@ -13,6 +13,9 @@ import { createBrowserProgressRepository } from './modules/progression';
 /** Pause between Rival actions so its turn plays out like a real opponent. */
 const RIVAL_STEP_DELAY_MS = 750;
 
+/** A fresh shuffle and incident sequence for every match. */
+const nextMatchSeed = (): number => Math.floor(Math.random() * 1_000_000_000);
+
 const LazyDioramaBoard = lazy(async () => ({ default: await loadDioramaBoard() }));
 
 export function App(): JSX.Element {
@@ -26,6 +29,7 @@ export function App(): JSX.Element {
       progressRepository={progressRepository}
       boardRenderer3d={boardRenderer3d}
       rivalStepDelayMs={RIVAL_STEP_DELAY_MS}
+      nextMatchSeed={nextMatchSeed}
     />
   );
 }

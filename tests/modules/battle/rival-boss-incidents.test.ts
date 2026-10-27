@@ -54,7 +54,7 @@ describe('Fair Rival, bosses, and Cloud Incidents', () => {
       expect(state.rivalHand.some((h) => playerIds.has(h.instanceId))).toBe(false);
     });
 
-    it('only lets the Rival deploy services it actually held, and refills its hand to the limit', () => {
+    it('only lets the Rival deploy services it actually held, keeping its deck intact', () => {
       const before = start();
       const after = endTurn(before);
       const rivalCards = new Set([...before.rivalHand, ...before.rivalDrawPile].map((h) => h.cardId));
@@ -64,7 +64,7 @@ describe('Fair Rival, bosses, and Cloud Incidents', () => {
           expect(rivalCards.has(slot.serviceCardId)).toBe(true);
         }
       }
-      expect(after.rivalHand).toHaveLength(HAND_LIMIT);
+      expect(after.rivalHand.length).toBeLessThanOrEqual(HAND_LIMIT);
       expect(deckSize(after)).toBe(deckSize(before));
       expect(after.rivalEnergy).toBeLessThanOrEqual(after.maxEnergy);
     });

@@ -1,11 +1,11 @@
 /**
- * Pure defense-in-depth shield hardening and hand-cycling rules, symmetric for both architects.
+ * Pure defense-in-depth shield hardening and discard rules, symmetric for both architects.
  */
 
 import type { ArchitectureBlueprint, ArchitectureSlot, ShieldCard } from '../../catalog';
 import { readSide, writeSide } from './architect-side';
 import { quoteShieldCost } from './cost-rules';
-import { DISCARDS_PER_TURN, drawUpToHandLimit } from './deck-rules';
+import { HAND_LIMIT } from './deck-rules';
 import type { HandCardInstance, MatchState, PlayerActor, SlotDeployment } from './match-types';
 import { consumeHandInstance, logAction, logSystem } from './placement-rules';
 import { BASE_SHIELD_POINTS, RECOMMENDED_SHIELD_BONUS } from './scoring';
@@ -85,32 +85,23 @@ function checkShieldEligibility(
   return null;
 }
 
-export function discardAndDrawCard(
+/**
+ * Discards are free and unlimited during your own turn. Nothing is drawn now: the hand is
+ * refilled to the limit at the start of that architect's next turn.
+ */
+export function discardFromHand(
   state: MatchState,
   actor: PlayerActor,
   instanceId: string,
   cardTitle: string,
 ): MatchState {
-  const side = readSide(state, actor);
-  if (side.discardsRemaining <= 0) {
-    return actor === 'player'
-      ? logSystem(state, {
-          severity: 'system',
-          headline: `Discard Limit Reached (${DISCARDS_PER_TURN} per Turn)`,
-          detail: 'End your turn to refresh discard capacity and draw back to 6 cards.',
-          pointsDelta: 0,
-        })
-      : state;
-  }
-
-  const consumed = readSide(consumeHandInstance(state, actor, instanceId), actor);
-  const refilled = drawUpToHandLimit(consumed.hand, consumed.drawPile, consumed.discardPile);
-  const next = writeSide(state, actor, { ...refilled, discardsRemaining: side.discardsRemaining - 1 });
+  const next = consumeHandInstance(state, actor, instanceId);
+  const toDraw = HAND_LIMIT - readSide(next, actor).hand.length;
 
   return logAction(next, actor, {
     severity: 'system',
-    headline: actor === 'player' ? `Cycled ${cardTitle} from Hand` : 'Cycled a card',
-    detail: `Drew a replacement card (${side.discardsRemaining - 1} discard(s) left this turn).`,
+    headline: actor === 'player' ? `Discarded ${cardTitle}` : 'Discarded a card',
+    detail: `Will draw ${toDraw} card${toDraw === 1 ? '' : 's'} at the start of the next turn.`,
     pointsDelta: 0,
   });
 }

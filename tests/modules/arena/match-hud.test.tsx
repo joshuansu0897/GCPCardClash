@@ -46,6 +46,28 @@ describe('Match HUD: Rival tray, bosses, incidents, and turn playback', () => {
     expect(screen.getByLabelText(/^Deck: \d+ cards$/)).toBeDefined();
   });
 
+  it('names the track enemy in the Rival tray', () => {
+    renderArena();
+    expect(screen.getByRole('region', { name: 'Rack Gremlin tray' })).toBeDefined();
+  });
+
+  it('lets the player discard freely and draws back to 6 at the start of the next turn', () => {
+    renderArena();
+    const hand = screen.getByRole('region', { name: 'Architect Card Hand' });
+    for (let i = 0; i < 3; i += 1) {
+      const [discard] = screen.getAllByRole('button', { name: /^Discard / });
+      if (discard === undefined) {
+        throw new Error('Expected a discard button');
+      }
+      fireEvent.click(discard);
+    }
+    expect(hand.querySelectorAll('.game-card')).toHaveLength(3);
+    expect(screen.getByLabelText('Cards to draw at the start of your next turn: 3')).toBeDefined();
+
+    fireEvent.click(screen.getByRole('button', { name: 'End Turn' }));
+    expect(hand.querySelectorAll('.game-card')).toHaveLength(6);
+  });
+
   it('renders the hand as game cards with an accessible action per card', () => {
     renderArena();
     const hand = screen.getByRole('region', { name: 'Architect Card Hand' });
@@ -89,11 +111,11 @@ describe('Match HUD: Rival tray, bosses, incidents, and turn playback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'End Turn' }));
 
     expect(screen.getByLabelText('TURN: 03')).toBeDefined();
-    const announcement = screen.getByRole('alertdialog', { name: /^Cloud Incident: / });
+    const announcement = screen.getByRole('alert', { name: /^Cloud Incident: / });
     expect(announcement).toBeDefined();
     expect(screen.getByText(/^INCIDENT · /)).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: 'Got it' }));
-    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(screen.queryByRole('alert', { name: /^Cloud Incident: / })).toBeNull();
   });
 });

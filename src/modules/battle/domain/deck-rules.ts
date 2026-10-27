@@ -7,7 +7,6 @@ import type { HandCardInstance } from './match-types';
 
 export const HAND_LIMIT = 6;
 export const MAX_TURN_ENERGY = 6;
-export const DISCARDS_PER_TURN = 2;
 
 export interface DeckDealResult {
   readonly hand: readonly HandCardInstance[];
@@ -131,20 +130,24 @@ function ensurePlayableOpening(
   return working;
 }
 
+/**
+ * Start-of-turn draw: refills the hand to `limit` from the draw pile. When the draw pile runs
+ * dry, the discard pile is reshuffled (seeded, so replays stay deterministic) into a new one.
+ */
 export function drawUpToHandLimit(
   hand: readonly HandCardInstance[],
   drawPile: readonly HandCardInstance[],
   discardPile: readonly HandCardInstance[],
+  reshuffleSeed: number,
   limit: number = HAND_LIMIT,
 ): DeckDealResult {
-  // Refill hand from draw pile first
   const nextHand = [...hand];
   let nextDraw = [...drawPile];
   let nextDiscard = [...discardPile];
 
   while (nextHand.length < limit) {
     if (nextDraw.length === 0 && nextDiscard.length > 0) {
-      nextDraw = [...nextDiscard];
+      nextDraw = shuffleWithSeed(nextDiscard, reshuffleSeed);
       nextDiscard = [];
     }
     const top = nextDraw.shift();

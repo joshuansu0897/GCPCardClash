@@ -11,7 +11,7 @@
 import type { ArchitectureBlueprint, CatalogCard, ServiceCard, ShieldCard } from '../../catalog';
 import { readSide, writeSide } from './architect-side';
 import { incidentDeployBonus, quoteServiceCost, quoteShieldCost } from './cost-rules';
-import { DISCARDS_PER_TURN, drawUpToHandLimit } from './deck-rules';
+import { drawUpToHandLimit } from './deck-rules';
 import type { HandCardInstance, MatchState, RivalProfile } from './match-types';
 import { logAction } from './placement-rules';
 import {
@@ -25,14 +25,14 @@ import { type CardAction, performCardAction } from './turn-actions';
 interface RivalTactics {
   readonly maxDeploys: number;
   readonly maxShields: number;
-  readonly maxCycles: number;
+  readonly maxDiscards: number;
   readonly captureFromTurn: number;
   readonly optimize: boolean;
 }
 
 const TACTICS: Readonly<Record<RivalProfile, RivalTactics>> = {
-  standard: { maxDeploys: 1, maxShields: 1, maxCycles: 1, captureFromTurn: 3, optimize: false },
-  boss: { maxDeploys: 3, maxShields: 2, maxCycles: 2, captureFromTurn: 2, optimize: true },
+  standard: { maxDeploys: 1, maxShields: 1, maxDiscards: 1, captureFromTurn: 3, optimize: false },
+  boss: { maxDeploys: 3, maxShields: 2, maxDiscards: 6, captureFromTurn: 2, optimize: true },
 };
 
 const MAX_ACTIONS_PER_TURN = 16;
@@ -40,7 +40,7 @@ const MAX_ACTIONS_PER_TURN = 16;
 interface TurnCounters {
   deploys: number;
   shields: number;
-  cycles: number;
+  discards: number;
 }
 
 type PlannedAction = { readonly kind: keyof TurnCounters | 'energy'; readonly action: CardAction };
@@ -50,11 +50,12 @@ interface HeldCard<C extends CatalogCard> {
   readonly card: C;
 }
 
-/** Start-of-turn upkeep, identical to the player's: +1 Energy (capped) and a fresh cycle quota. */
+/** Start-of-turn upkeep, identical to the player's: +1 Energy (capped) and a draw back up to the hand limit. */
 export function beginRivalTurn(state: MatchState): MatchState {
+  const side = readSide(state, 'rival');
   return writeSide(state, 'rival', {
-    energy: Math.min(state.maxEnergy, state.rivalEnergy + 1),
-    discardsRemaining: DISCARDS_PER_TURN,
+    energy: Math.min(state.maxEnergy, side.energy + 1),
+    ...drawUpToHandLimit(side.hand, side.drawPile, side.discardPile, state.seed * 29 + state.turn),
   });
 }
 
@@ -68,7 +69,7 @@ export function planRivalTurn(
   }
 
   const tactics = TACTICS[state.rivalProfile];
-  const counters: TurnCounters = { deploys: 0, shields: 0, cycles: 0 };
+  const counters: TurnCounters = { deploys: 0, shields: 0, discards: 0 };
   const steps: MatchState[] = [];
   let working = beginRivalTurn(state);
 
@@ -92,21 +93,14 @@ export function planRivalTurn(
   }
 
   if (steps.length === 0) {
-    working = logAction(working, 'rival', {
-      severity: 'rival',
-      headline: 'Passed the Turn',
-      detail: 'Holding cards and banking Energy for a bigger play.',
-      pointsDelta: 0,
-    });
-  }
-
-  // End-of-turn refill, identical to the player's
-  const side = readSide(working, 'rival');
-  working = writeSide(working, 'rival', drawUpToHandLimit(side.hand, side.drawPile, side.discardPile));
-  if (steps.length > 0) {
-    steps[steps.length - 1] = working;
-  } else {
-    steps.push(working);
+    steps.push(
+      logAction(working, 'rival', {
+        severity: 'rival',
+        headline: 'Passed the Turn',
+        detail: 'Holding cards and banking Energy for a bigger play.',
+        pointsDelta: 0,
+      }),
+    );
   }
   return steps;
 }
@@ -141,10 +135,10 @@ function chooseRivalAction(
     }
   }
 
-  if (counters.cycles < tactics.maxCycles && state.rivalDiscardsRemaining > 0) {
+  if (counters.discards < tactics.maxDiscards) {
     const dead = held.find((h) => isDeadCard(state, blueprint, h.card));
     if (dead !== undefined) {
-      return { kind: 'cycles', action: { type: 'discard-card', instanceId: dead.item.instanceId } };
+      return { kind: 'discards', action: { type: 'discard-card', instanceId: dead.item.instanceId } };
     }
   }
 
@@ -256,7 +250,7 @@ function pickShield(
   return best?.action ?? null;
 }
 
-/** A card the Rival cannot use on this board right now — the one worth cycling away. */
+/** A card the Rival cannot use on this board right now — the one worth discarding. */
 function isDeadCard(state: MatchState, blueprint: ArchitectureBlueprint, card: CatalogCard): boolean {
   if (card.kind === 'energy') {
     return state.rivalEnergy >= state.maxEnergy;

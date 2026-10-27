@@ -1,6 +1,6 @@
 /**
  * Transient combat VFX driven by `BoardEvent` cues: card toss onto a pad, impact rings,
- * rival capture beams, shield lock flashes, and a victory sparkle burst.
+ * rival capture beams, shield lock flashes, Cloud Incident spectacles, and a victory sparkle burst.
  * Each effect retires itself through `onDone` once its timeline has played out.
  */
 
@@ -9,9 +9,11 @@ import { useFrame } from '@react-three/fiber';
 import { type JSX, useRef } from 'react';
 import type { Group, Mesh, MeshBasicMaterial } from 'three';
 
+import { type IncidentManifestation, getIncidentCard } from '../../battle';
 import type { CatalogCard } from '../../catalog';
 import type { BoardEvent } from '../domain/board-events';
-import { INK_HEX, type PadPlacement } from '../domain/board-layout';
+import { INK_HEX, type PadPlacement, type TerracePlacement } from '../domain/board-layout';
+import { IncidentSpectacle, type SpectacleArea } from './incident-spectacle';
 import { OWNER_HEX, clamp01, easeInQuad, easeOutCubic, nowSec } from './motion';
 
 export const TOSS_DURATION_SEC = 0.5;
@@ -27,6 +29,8 @@ export interface ActiveEffect {
 export interface VfxLayerProps {
   readonly effects: readonly ActiveEffect[];
   readonly padsBySlotId: Readonly<Record<string, PadPlacement>>;
+  readonly terraces: readonly TerracePlacement[];
+  readonly islandWidth: number;
   readonly cardsById: Readonly<Record<string, CatalogCard>>;
   readonly onDone: (eventId: string) => void;
 }
@@ -81,6 +85,25 @@ function EffectSwitch(props: VfxLayerProps & { readonly effect: ActiveEffect }):
         </group>
       );
     }
+    case 'incident-struck': {
+      const manifestation = getIncidentCard(event.incidentId)?.manifestation;
+      if (manifestation === undefined) {
+        return <Retire onDone={done} />;
+      }
+      return (
+        <IncidentSpectacle
+          manifestation={manifestation}
+          startsAt={startsAt}
+          areas={resolveSpectacleAreas(manifestation, props.terraces, event.affectedZoneId)}
+          struckPoints={event.struckSlotIds.flatMap((slotId) => {
+            const pad = props.padsBySlotId[slotId];
+            return pad !== undefined ? [pad.position] : [];
+          })}
+          islandWidth={props.islandWidth}
+          onDone={done}
+        />
+      );
+    }
     case 'match-completed':
       return event.winner === 'player' ? <VictoryBurst startsAt={startsAt} onDone={done} /> : <Retire onDone={done} />;
     case 'board-reset':
@@ -89,6 +112,21 @@ function EffectSwitch(props: VfxLayerProps & { readonly effect: ActiveEffect }):
     case 'turn-advanced':
       return <Retire onDone={done} />;
   }
+}
+
+function resolveSpectacleAreas(
+  manifestation: IncidentManifestation,
+  terraces: readonly TerracePlacement[],
+  affectedZoneId: string | null,
+): readonly SpectacleArea[] {
+  const { target } = manifestation;
+  const matching =
+    target === 'island'
+      ? terraces
+      : target === 'affected-zone'
+        ? terraces.filter((t) => t.zoneId === affectedZoneId)
+        : terraces.filter((t) => t.ink === target);
+  return (matching.length > 0 ? matching : terraces).map((t) => ({ center: t.center, size: t.size }));
 }
 
 function Retire(props: { readonly onDone: () => void }): null {

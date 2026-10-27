@@ -1,12 +1,13 @@
 /**
  * Player hand: a fanned row of game cards between the draw pile and the turn controls.
- * Each card face is one button (play energy / select service or shield); cycling is a
- * separate corner button. Pointer position drives a subtle tilt and foil sheen.
+ * Each card face is one button (play energy / select service or shield); discarding is a
+ * separate corner button — free and unlimited, with the hand refilled at the start of the
+ * next turn. Pointer position drives a subtle tilt and foil sheen.
  */
 
 import type { CSSProperties, JSX, PointerEvent } from 'react';
 
-import { BASE_SHIELD_POINTS, DISCARDS_PER_TURN, type HandCardInstance, RECOMMENDED_SHIELD_BONUS } from '../../battle';
+import { BASE_SHIELD_POINTS, HAND_LIMIT, type HandCardInstance, RECOMMENDED_SHIELD_BONUS } from '../../battle';
 import type { CatalogCard } from '../../catalog';
 import { TechnicalIcon, type TechnicalIconName } from '../../../shared/gcp-icons';
 
@@ -17,7 +18,6 @@ export interface HandDockProps {
   readonly cardsById: Readonly<Record<string, CatalogCard>>;
   readonly selectedInstanceId: string | null;
   readonly playerEnergy: number;
-  readonly discardsRemaining: number;
   readonly isMatchCompleted: boolean;
   readonly isLocked: boolean;
   readonly onSelectOrPlayCard: (instance: HandCardInstance, card: CatalogCard) => void;
@@ -27,7 +27,8 @@ export interface HandDockProps {
 
 export function HandDock(props: HandDockProps): JSX.Element {
   const inactive = props.isMatchCompleted || props.isLocked;
-  const canDiscard = props.discardsRemaining > 0 && !inactive;
+  const canDiscard = !inactive;
+  const toDraw = Math.max(0, HAND_LIMIT - props.hand.length);
   const mid = (props.hand.length - 1) / 2;
 
   return (
@@ -60,11 +61,13 @@ export function HandDock(props: HandDockProps): JSX.Element {
 
       <div className="turn-control-rail">
         <PileStack label="Discard" count={props.discardPileCount} variant="discard" />
-        <div className="cycle-quota" aria-label={`Cycles left this turn: ${props.discardsRemaining} of ${DISCARDS_PER_TURN}`}>
-          <TechnicalIcon name="refresh" size={14} />
-          <span>
-            {props.discardsRemaining}/{DISCARDS_PER_TURN} cycles
-          </span>
+        <div
+          className={`cycle-quota ${toDraw > 0 ? 'has-draws' : ''}`}
+          aria-label={`Cards to draw at the start of your next turn: ${toDraw}`}
+          title="Discarding is free. You draw back up to 6 at the start of your next turn."
+        >
+          <TechnicalIcon name="cards" size={14} />
+          <span>Next turn: draw {toDraw}</span>
         </div>
         <button type="button" className="end-turn-btn" disabled={inactive} onClick={props.onEndTurn}>
           <span>{props.isLocked ? 'Rival Turn…' : 'End Turn'}</span>
@@ -146,10 +149,10 @@ function GameCard(props: GameCardProps): JSX.Element {
         className="gc-cycle"
         disabled={!props.canDiscard}
         onClick={props.onDiscard}
-        aria-label={`Cycle ${card.title}`}
-        title="Discard and draw 1 card"
+        aria-label={`Discard ${card.title}`}
+        title="Discard (free) — replaced at the start of your next turn"
       >
-        <TechnicalIcon name="refresh" size={13} />
+        <TechnicalIcon name="discard" size={13} />
       </button>
     </div>
   );

@@ -9,6 +9,7 @@ import {
   diffBoardEvents,
   resolveBuildingArchetype,
   resolvePadAffordance,
+  resolveTrackTheme,
 } from '../../../src/modules/diorama';
 
 describe('Diorama bounded context', () => {
@@ -100,6 +101,24 @@ describe('Diorama bounded context', () => {
       expect(diffBoardEvents(baseState, nextTurn).map((e) => e.type)).toEqual(['turn-advanced']);
     });
 
+    it('emits incident-struck once per strike, naming the pads it knocked out', () => {
+      const held = withSlot(baseState, slotA.id, { owner: 'rival', serviceCardId: 'cloud-cdn' });
+      const struck: MatchState = {
+        ...withSlot(held, slotA.id, { owner: null, serviceCardId: null }),
+        incident: { incidentId: 'regional-outage', turn: 1, affectedZoneId: slotA.zoneId },
+      };
+      expect(diffBoardEvents(held, struck)).toEqual([
+        expect.objectContaining({
+          type: 'incident-struck',
+          incidentId: 'regional-outage',
+          affectedZoneId: slotA.zoneId,
+          struckSlotIds: [slotA.id],
+        }),
+      ]);
+      const later: MatchState = { ...struck, playerScore: struck.playerScore + 10 };
+      expect(diffBoardEvents(struck, later).some((e) => e.type === 'incident-struck')).toBe(false);
+    });
+
     it('generates unique event ids within a single diff', () => {
       let next = withSlot(baseState, slotA.id, { owner: 'player', serviceCardId: 'global-ext-alb' });
       next = withSlot(next, slotB.id, { owner: 'rival', serviceCardId: 'cloud-cdn' });
@@ -143,6 +162,12 @@ describe('Diorama bounded context', () => {
       const zeroDay: MatchState = { ...theirs, incident: { incidentId: 'zero-day', turn: 1, affectedZoneId: null } };
       expect(resolvePadAffordance(zeroDay, slotA.id, service)).toEqual({ kind: 'capture', cost: service.energyCost });
     });
+  });
+
+  it('gives every track its own world and enemy form', () => {
+    const themes = catalog.listTracks().map((track) => resolveTrackTheme(track.id));
+    expect(new Set(themes.map((t) => t.enemyForm)).size).toBe(themes.length);
+    expect(new Set(themes.map((t) => t.name)).size).toBe(themes.length);
   });
 
   it('maps every catalog card onto a building archetype', () => {

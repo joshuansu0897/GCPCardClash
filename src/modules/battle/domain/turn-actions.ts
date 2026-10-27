@@ -7,7 +7,7 @@ import type { ArchitectureBlueprint, CatalogCard } from '../../catalog';
 import { readSide } from './architect-side';
 import type { MatchState, PlayerActor, TurnAction } from './match-types';
 import { applyEnergyCard, applyServiceDeployment } from './placement-rules';
-import { applyShieldToSlot, discardAndDrawCard } from './shield-rules';
+import { applyShieldToSlot, discardFromHand } from './shield-rules';
 
 export type CardAction = Exclude<TurnAction, { readonly type: 'end-turn' }>;
 
@@ -25,7 +25,7 @@ export function performCardAction(
   }
 
   if (action.type === 'discard-card') {
-    return discardAndDrawCard(state, actor, handItem.instanceId, card.title);
+    return discardFromHand(state, actor, handItem.instanceId, card.title);
   }
   if (action.type === 'play-energy' && card.kind === 'energy') {
     return applyEnergyCard(state, actor, handItem, card);

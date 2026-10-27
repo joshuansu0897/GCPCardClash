@@ -24,10 +24,19 @@ export interface ArenaWorkbenchProps {
   readonly boardRenderer3d?: ComponentType<BoardRendererProps>;
   /** Pause between Rival actions so its turn plays out visibly; 0 resolves the turn instantly. */
   readonly rivalStepDelayMs?: number;
+  /** Seed for each new match's shuffles and incident draws; fixed by default so tests are deterministic. */
+  readonly nextMatchSeed?: () => number;
 }
 
+const FIXED_MATCH_SEED = (): number => 202610;
+
 export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
-  const ctrl = useArenaController(props.catalogRepository, props.progressRepository, props.rivalStepDelayMs ?? 0);
+  const ctrl = useArenaController(
+    props.catalogRepository,
+    props.progressRepository,
+    props.rivalStepDelayMs ?? 0,
+    props.nextMatchSeed ?? FIXED_MATCH_SEED,
+  );
   const { matchState, activeBlueprint, curriculum } = ctrl;
   const has3d = props.boardRenderer3d !== undefined;
   const [boardView, setBoardView] = useState<BoardView>(has3d ? '3d' : '2d');
@@ -35,7 +44,7 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
   const affectedZoneId = matchState.incident?.affectedZoneId ?? null;
 
   return (
-    <div className={`workbench-shell ${ctrl.playMode === 'boss' ? 'is-boss-battle' : ''}`}>
+    <div className={`workbench-shell track-${activeBlueprint.trackId} ${ctrl.playMode === 'boss' ? 'is-boss-battle' : ''}`}>
       <ArenaHeaderSection
         ctrl={ctrl}
         boardView={has3d ? boardView : null}
@@ -44,7 +53,7 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
 
       <main className="workbench-stage">
         <div className="arena-main-column">
-          <RivalDock matchState={matchState} boss={ctrl.boss} isActing={ctrl.rivalActing} />
+          <RivalDock matchState={matchState} rival={ctrl.rival} isActing={ctrl.rivalActing} />
           <IncidentTicker
             incident={activeIncident}
             zoneLabel={activeBlueprint.zones.find((z) => z.id === affectedZoneId)?.label ?? null}
@@ -83,7 +92,6 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
         cardsById={curriculum.cardsById}
         selectedInstanceId={ctrl.selectedInstanceId}
         playerEnergy={matchState.playerEnergy}
-        discardsRemaining={matchState.discardsRemaining}
         isMatchCompleted={matchState.status === 'completed'}
         isLocked={ctrl.rivalActing}
         onSelectOrPlayCard={ctrl.handleCardClick}
@@ -94,7 +102,7 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
       <TurnPhaseBanner
         turn={matchState.turn}
         rivalActing={ctrl.rivalActing}
-        boss={ctrl.boss}
+        rival={ctrl.rival}
         hidden={matchState.mode === 'study' || matchState.status === 'completed' || (props.rivalStepDelayMs ?? 0) <= 0}
       />
       <IncidentAnnouncement incident={ctrl.announcedIncident} boss={ctrl.boss} onDismiss={ctrl.dismissIncident} />
@@ -137,9 +145,7 @@ function ArenaHeaderSection(props: {
       onOpenScenarios={() => ctrl.setCatalogOpen(true)}
       onOpenRules={() => ctrl.setRulesOpen(true)}
       onToggleMode={(nextMode) => ctrl.launchScenario(activeBlueprint.id, nextMode)}
-      onRestartMatch={() =>
-        ctrl.launchScenario(activeBlueprint.id, ctrl.playMode, matchState.turn + 202610)
-      }
+      onRestartMatch={() => ctrl.launchScenario(activeBlueprint.id, ctrl.playMode)}
     />
   );
 }
@@ -163,7 +169,7 @@ function ArenaDialogs(props: { readonly ctrl: ArenaControllerState }): JSX.Eleme
         isOpen={ctrl.debriefOpen}
         blueprint={ctrl.activeBlueprint}
         matchState={ctrl.matchState}
-        onReplay={(mode) => ctrl.launchScenario(ctrl.activeBlueprint.id, mode, 202699)}
+        onReplay={(mode) => ctrl.launchScenario(ctrl.activeBlueprint.id, mode)}
         onOpenCatalog={() => {
           ctrl.dismissDebrief();
           ctrl.setCatalogOpen(true);

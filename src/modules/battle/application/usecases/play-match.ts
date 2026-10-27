@@ -5,13 +5,7 @@
 import type { ArchitectureBlueprint, CatalogCard } from '../../../catalog';
 import { planRivalTurn } from '../../domain/ai-rival';
 import { readSide, writeSide } from '../../domain/architect-side';
-import { resolveBossForTrack } from '../../domain/boss-roster';
-import {
-  DISCARDS_PER_TURN,
-  MAX_TURN_ENERGY,
-  dealScenarioDeck,
-  drawUpToHandLimit,
-} from '../../domain/deck-rules';
+import { MAX_TURN_ENERGY, dealScenarioDeck, drawUpToHandLimit } from '../../domain/deck-rules';
 import { drawIncidentForTurn, strikeIncident } from '../../domain/incident-rules';
 import type {
   ArenaMode,
@@ -21,6 +15,7 @@ import type {
   TurnAction,
 } from '../../domain/match-types';
 import { appendLog } from '../../domain/placement-rules';
+import { resolveBossForTrack, resolveRivalForTrack } from '../../domain/rival-roster';
 import { performCardAction } from '../../domain/turn-actions';
 
 const RIVAL_DECK_SEED_OFFSET = 7919;
@@ -63,7 +58,6 @@ export function startScenarioMatch(options: StartMatchOptions): MatchState {
     playerEnergy: mode === 'study' ? MAX_TURN_ENERGY : 2,
     // The Rival gains +1 at the start of its turn, so it also plays Turn 1 with 2 Energy.
     rivalEnergy: 1,
-    discardsRemaining: DISCARDS_PER_TURN,
     playerScore: 0,
     rivalScore: 0,
     playerMistakes: 0,
@@ -74,7 +68,6 @@ export function startScenarioMatch(options: StartMatchOptions): MatchState {
     rivalHand: rivalDeal.hand,
     rivalDrawPile: rivalDeal.drawPile,
     rivalDiscardPile: rivalDeal.discardPile,
-    rivalDiscardsRemaining: DISCARDS_PER_TURN,
     incident: null,
     slots,
     logs,
@@ -93,20 +86,20 @@ function buildOpeningLogEntry(blueprint: ArchitectureBlueprint, mode: ArenaMode,
     };
   }
 
+  const rival = resolveRivalForTrack(blueprint.trackId, rivalProfile);
   if (rivalProfile === 'boss') {
-    const boss = resolveBossForTrack(blueprint.trackId);
     return {
       severity: 'rival' as const,
-      headline: `BOSS BATTLE — ${boss.name}, ${boss.epithet}`,
-      detail: `"${boss.intro}" Incidents strike every 2 turns, including ${boss.name}'s signature move.`,
+      headline: `BOSS BATTLE — ${rival.name}, ${rival.epithet}`,
+      detail: `"${rival.intro}" Incidents strike every 2 turns, including ${rival.name}'s signature move.`,
       pointsDelta: 0,
     };
   }
 
   return {
-    severity: 'system' as const,
-    headline: `Battle Initialized — ${blueprint.code} ${blueprint.title}`,
-    detail: 'Play Provisioning tools for Energy, deploy matching GCP Services onto open slots, and attach Security Shields!',
+    severity: 'rival' as const,
+    headline: `${blueprint.code} ${blueprint.title} — vs ${rival.name}`,
+    detail: `"${rival.intro}" Play Provisioning for Energy, deploy matching GCP Services onto open slots, and attach Security Shields!`,
     pointsDelta: 0,
   };
 }
@@ -140,11 +133,8 @@ export function resolveEndTurnSequence(
     return [state];
   }
 
-  const player = readSide(state, 'player');
-  const refilled = writeSide(state, 'player', drawUpToHandLimit(player.hand, player.drawPile, player.discardPile));
-
-  const rivalSteps = planRivalTurn(refilled, blueprint, cardsById);
-  const afterRival = rivalSteps[rivalSteps.length - 1] ?? refilled;
+  const rivalSteps = planRivalTurn(state, blueprint, cardsById);
+  const afterRival = rivalSteps[rivalSteps.length - 1] ?? state;
   if (afterRival.status === 'completed') {
     return rivalSteps;
   }
@@ -154,13 +144,19 @@ export function resolveEndTurnSequence(
 
 function startNextTurn(state: MatchState, blueprint: ArchitectureBlueprint): MatchState {
   const turn = state.turn + 1;
-  const next: MatchState = {
+  const upkeep: MatchState = {
     ...state,
     turn,
     playerEnergy: state.mode === 'study' ? state.maxEnergy : Math.min(state.maxEnergy, state.playerEnergy + 1),
-    discardsRemaining: DISCARDS_PER_TURN,
     incident: null,
   };
+  // Start-of-turn draw back up to the hand limit (the Rival does the same at the start of its turn)
+  const player = readSide(upkeep, 'player');
+  const next = writeSide(
+    upkeep,
+    'player',
+    drawUpToHandLimit(player.hand, player.drawPile, player.discardPile, upkeep.seed * 13 + turn),
+  );
 
   const signature = state.rivalProfile === 'boss' ? resolveBossForTrack(blueprint.trackId).signatureIncidentId : null;
   const incident = drawIncidentForTurn(next, turn, signature);

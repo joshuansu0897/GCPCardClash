@@ -10,12 +10,14 @@ import { Color, type Group } from 'three';
 
 import type { TerracePlacement } from '../domain/board-layout';
 import { INK_HEX } from '../domain/board-layout';
+import type { TrackTheme } from '../domain/track-theme';
 
 const SLAB_THICKNESS = 0.6;
 
 export interface FloatingIslandProps {
   readonly size: readonly [width: number, depth: number];
   readonly terraces: readonly TerracePlacement[];
+  readonly theme: TrackTheme;
   readonly reducedMotion: boolean;
 }
 
@@ -30,23 +32,23 @@ export function FloatingIsland(props: FloatingIslandProps): JSX.Element {
         position={[0, -SLAB_THICKNESS / 2, 0]}
         receiveShadow
       >
-        <meshStandardMaterial color="#BBF7D0" roughness={0.8} />
+        <meshStandardMaterial color={props.theme.grass} roughness={0.8} />
       </RoundedBox>
 
       <mesh position={[0, -SLAB_THICKNESS - 1.6, 0]} scale={[width * 0.5, 1, depth * 0.5]}>
         <cylinderGeometry args={[1, 0.18, 3.2, 7, 2]} />
-        <meshStandardMaterial color="#A8A29E" roughness={0.9} flatShading />
+        <meshStandardMaterial color={props.theme.rock} roughness={0.9} flatShading />
       </mesh>
       <mesh position={[0, -SLAB_THICKNESS - 0.15, 0]} scale={[width * 0.52, 1, depth * 0.52]}>
         <cylinderGeometry args={[1, 0.92, 0.3, 7]} />
-        <meshStandardMaterial color="#92785F" roughness={0.9} flatShading />
+        <meshStandardMaterial color={props.theme.soil} roughness={0.9} flatShading />
       </mesh>
 
       {props.terraces.map((terrace) => (
         <Terrace key={terrace.zoneId} terrace={terrace} />
       ))}
 
-      <FloatingDebris width={width} depth={depth} reducedMotion={props.reducedMotion} />
+      <FloatingDebris width={width} depth={depth} rock={props.theme.rock} reducedMotion={props.reducedMotion} />
     </group>
   );
 }
@@ -75,6 +77,7 @@ function Terrace(props: { readonly terrace: TerracePlacement }): JSX.Element {
 function FloatingDebris(props: {
   readonly width: number;
   readonly depth: number;
+  readonly rock: string;
   readonly reducedMotion: boolean;
 }): JSX.Element {
   const ref = useRef<Group>(null);
@@ -95,14 +98,19 @@ function FloatingDebris(props: {
       {rocks.map(([x, y, z, r]) => (
         <mesh key={`${x}:${z}`} position={[x, y, z]}>
           <dodecahedronGeometry args={[r, 0]} />
-          <meshStandardMaterial color="#A8A29E" roughness={0.9} flatShading />
+          <meshStandardMaterial color={props.rock} roughness={0.9} flatShading />
         </mesh>
       ))}
     </group>
   );
 }
 
-export function SkyClouds(props: { readonly spread: number; readonly reducedMotion: boolean }): JSX.Element {
+export function SkyClouds(props: {
+  readonly spread: number;
+  readonly color: string;
+  readonly opacity: number;
+  readonly reducedMotion: boolean;
+}): JSX.Element {
   const ref = useRef<Group>(null);
   useFrame((_, delta) => {
     if (ref.current !== null && !props.reducedMotion) {
@@ -130,7 +138,7 @@ export function SkyClouds(props: { readonly spread: number; readonly reducedMoti
           ] as const).map(([px, py, pz, r]) => (
             <mesh key={`${px}:${py}`} position={[px, py, pz]}>
               <sphereGeometry args={[r, 16, 12]} />
-              <meshStandardMaterial color="#FFFFFF" roughness={1} transparent opacity={0.92} />
+              <meshStandardMaterial color={props.color} roughness={1} transparent opacity={props.opacity} />
             </mesh>
           ))}
         </group>

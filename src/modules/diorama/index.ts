@@ -21,6 +21,9 @@ export { computeIslandLayout, resolveBuildingArchetype } from './domain/board-la
 export type { PadAffordance } from './domain/pad-affordance';
 export { describeAffordance, resolvePadAffordance } from './domain/pad-affordance';
 
+export type { EnemyForm, TrackTheme } from './domain/track-theme';
+export { TRACK_THEMES, resolveTrackTheme } from './domain/track-theme';
+
 export { detectWebGLSupport } from './presentation/webgl-support';
 
 export type { DioramaBoardProps } from './presentation/diorama-board';

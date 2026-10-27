@@ -4,7 +4,7 @@
 
 import { type JSX, useRef, useState } from 'react';
 
-import { resolveBossForTrack } from '../../battle';
+import { resolveBossForTrack, resolveRivalForTrack } from '../../battle';
 import type { ArchitectureBlueprint, TrackId, TrackInfo } from '../../catalog';
 import { type CampaignProgress, isBossUnlocked } from '../../progression';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
@@ -109,6 +109,7 @@ function ScenarioBlueprintTile(props: {
 }): JSX.Element {
   const { blueprint, isCurrent, stars, bestScore, onLaunch } = props;
   const boss = resolveBossForTrack(blueprint.trackId);
+  const rival = resolveRivalForTrack(blueprint.trackId, 'standard');
 
   return (
     <article className={isCurrent ? 'scenario-tile is-current' : 'scenario-tile'}>
@@ -125,6 +126,9 @@ function ScenarioBlueprintTile(props: {
         <span className="spec-tag">{blueprint.difficulty}</span>
         <span className="spec-tag">{blueprint.slots.length} Nodes</span>
         <span className="spec-tag">Best: {bestScore} PTS</span>
+        <span className="spec-tag is-rival" title={rival.epithet}>
+          vs {rival.name}
+        </span>
         {props.bossDefeated && (
           <span className="spec-tag is-boss-defeated">
             <TechnicalIcon name="crown" size={12} /> {boss.name} defeated

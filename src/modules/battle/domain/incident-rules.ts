@@ -32,6 +32,21 @@ export interface RoundModifiers {
   readonly deployBonus?: { readonly zoneInk: SubsystemInk; readonly points: number };
 }
 
+export type IncidentPalette = 'fire' | 'ice' | 'gold' | 'toxic' | 'neon' | 'scan' | 'shadow' | 'glitch';
+
+/**
+ * How an incident visibly plays out on the board: a meteor shower over a zone, a ship sweeping
+ * across the island, something falling from the sky, lightning, or a stream of traffic.
+ * Renderers interpret this; the rules never read it.
+ */
+export interface IncidentManifestation {
+  readonly kind: 'meteor-shower' | 'flyover' | 'sky-fall' | 'lightning' | 'packet-stream';
+  readonly palette: IncidentPalette;
+  /** Whole island, the zone an outage picked, or every zone of one subsystem ink. */
+  readonly target: 'island' | 'affected-zone' | SubsystemInk;
+  readonly particle?: 'coin' | 'snow' | 'shard' | 'goo';
+}
+
 export interface IncidentCard {
   readonly id: string;
   readonly title: string;
@@ -41,6 +56,7 @@ export interface IncidentCard {
   readonly lesson: string;
   readonly effects: readonly IncidentEffect[];
   readonly modifiers?: RoundModifiers;
+  readonly manifestation: IncidentManifestation;
   /** Signature incidents only appear in their boss's battles. */
   readonly bossOnly?: boolean;
 }
@@ -48,6 +64,7 @@ export interface IncidentCard {
 export const INCIDENT_DECK: readonly IncidentCard[] = [
   {
     id: 'traffic-surge',
+    manifestation: { kind: 'packet-stream', palette: 'neon', target: 'edge' },
     title: 'Viral Traffic Surge',
     tone: 'boon',
     flavor: 'A launch post hits the front page and requests spike 40x.',
@@ -58,6 +75,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'zero-day',
+    manifestation: { kind: 'flyover', palette: 'fire', target: 'island' },
     title: 'Zero-Day Disclosure',
     tone: 'hazard',
     flavor: 'A critical CVE drops in a widely used base image.',
@@ -68,6 +86,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'budget-freeze',
+    manifestation: { kind: 'sky-fall', palette: 'ice', target: 'island', particle: 'snow' },
     title: 'Quarter-End Budget Freeze',
     tone: 'hazard',
     flavor: 'Finance pauses all new spend until the books close.',
@@ -77,6 +96,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'free-tier-credits',
+    manifestation: { kind: 'sky-fall', palette: 'gold', target: 'island', particle: 'coin' },
     title: 'Startup Credits Approved',
     tone: 'boon',
     flavor: 'Your program application came through.',
@@ -86,6 +106,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'compliance-audit',
+    manifestation: { kind: 'flyover', palette: 'scan', target: 'island' },
     title: 'Surprise Compliance Audit',
     tone: 'twist',
     flavor: 'The auditors arrive a week early.',
@@ -98,6 +119,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'hot-patch-window',
+    manifestation: { kind: 'flyover', palette: 'neon', target: 'island' },
     title: 'Emergency Patch Window',
     tone: 'boon',
     flavor: 'Change control waives approvals for security fixes today.',
@@ -108,6 +130,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'regional-outage',
+    manifestation: { kind: 'meteor-shower', palette: 'fire', target: 'affected-zone' },
     title: 'Zonal Outage',
     tone: 'hazard',
     flavor: 'A zone goes dark after a power event.',
@@ -117,6 +140,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'change-freeze',
+    manifestation: { kind: 'sky-fall', palette: 'ice', target: 'island', particle: 'shard' },
     title: 'Mainframe Change Freeze',
     tone: 'hazard',
     bossOnly: true,
@@ -128,6 +152,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'privilege-escalation',
+    manifestation: { kind: 'flyover', palette: 'shadow', target: 'island' },
     title: 'Privilege Escalation',
     tone: 'hazard',
     bossOnly: true,
@@ -138,6 +163,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'schema-drift',
+    manifestation: { kind: 'sky-fall', palette: 'toxic', target: 'data', particle: 'goo' },
     title: 'Schema Drift',
     tone: 'hazard',
     bossOnly: true,
@@ -148,6 +174,7 @@ export const INCIDENT_DECK: readonly IncidentCard[] = [
   },
   {
     id: 'prompt-injection',
+    manifestation: { kind: 'lightning', palette: 'glitch', target: 'affected-zone' },
     title: 'Prompt Injection Wave',
     tone: 'hazard',
     bossOnly: true,

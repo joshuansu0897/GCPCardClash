@@ -17,7 +17,6 @@ export type {
 } from './domain/match-types';
 
 export {
-  DISCARDS_PER_TURN,
   HAND_LIMIT,
   MAX_TURN_ENERGY,
 } from './domain/deck-rules';
@@ -33,7 +32,13 @@ export {
 
 export { quoteServiceCost, quoteShieldCost } from './domain/cost-rules';
 
-export type { IncidentCard, IncidentTone, RoundModifiers } from './domain/incident-rules';
+export type {
+  IncidentCard,
+  IncidentManifestation,
+  IncidentPalette,
+  IncidentTone,
+  RoundModifiers,
+} from './domain/incident-rules';
 export {
   BOSS_INCIDENT_CADENCE,
   INCIDENT_DECK,
@@ -41,8 +46,13 @@ export {
   getIncidentCard,
 } from './domain/incident-rules';
 
-export type { BossProfile } from './domain/boss-roster';
-export { BOSS_ROSTER, resolveBossForTrack } from './domain/boss-roster';
+export type { BossProfile, RivalPersona } from './domain/rival-roster';
+export {
+  BOSS_ROSTER,
+  STANDARD_RIVALS,
+  resolveBossForTrack,
+  resolveRivalForTrack,
+} from './domain/rival-roster';
 
 export type { StartMatchOptions } from './application/usecases/play-match';
 export {

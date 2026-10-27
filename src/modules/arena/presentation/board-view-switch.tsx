@@ -9,6 +9,7 @@ import { Component, type ComponentType, type JSX, type ReactNode, Suspense } fro
 import type { MatchState } from '../../battle';
 import type { ArchitectureBlueprint, CatalogCard } from '../../catalog';
 import { BlueprintCanvas } from './blueprint-canvas';
+import { IncidentFx2d } from './incident-fx-2d';
 
 export type BoardView = '3d' | '2d';
 
@@ -48,18 +49,21 @@ export function BoardViewSwitch(props: BoardViewSwitchProps): JSX.Element {
 
 function DraftingSheet(props: BoardRendererProps): JSX.Element {
   return (
-    <BlueprintCanvas
-      blueprint={props.blueprint}
-      matchState={props.matchState}
-      mode={props.matchState.mode}
-      playerEnergy={props.matchState.playerEnergy}
-      deployedSlots={props.matchState.slots}
-      cardsById={props.cardsById}
-      selectedHandCard={props.selectedHandCard}
-      inspectedSlotId={props.inspectedSlotId}
-      onInspectSlot={props.onInspectSlot}
-      onTargetSlot={props.onTargetSlot}
-    />
+    <div className="sheet-fx-host">
+      <BlueprintCanvas
+        blueprint={props.blueprint}
+        matchState={props.matchState}
+        mode={props.matchState.mode}
+        playerEnergy={props.matchState.playerEnergy}
+        deployedSlots={props.matchState.slots}
+        cardsById={props.cardsById}
+        selectedHandCard={props.selectedHandCard}
+        inspectedSlotId={props.inspectedSlotId}
+        onInspectSlot={props.onInspectSlot}
+        onTargetSlot={props.onTargetSlot}
+      />
+      <IncidentFx2d matchState={props.matchState} />
+    </div>
   );
 }
 

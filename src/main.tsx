@@ -9,6 +9,7 @@ import { App } from './App';
 import './styles/tokens-and-shell.css';
 import './styles/board-and-dialogs.css';
 import './styles/hand-and-match-hud.css';
+import './styles/incident-fx.css';
 
 const rootElement = document.getElementById('root');
 if (rootElement === null) {

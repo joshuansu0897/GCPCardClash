@@ -24,6 +24,7 @@ export type TechnicalIconName =
   | 'crown'
   | 'lock'
   | 'cards'
+  | 'discard'
   | 'close';
 
 export interface TechnicalIconProps {
@@ -137,6 +138,13 @@ function renderUtilityPaths(name: TechnicalIconName): JSX.Element {
         <>
           <rect x="7" y="3" width="9" height="12.5" rx="1.5" />
           <path d="M5 5.5l-1.3.4a1.5 1.5 0 0 0-1 1.8l2.6 9.4a1.5 1.5 0 0 0 1.8 1l5.2-1.4" />
+        </>
+      );
+    case 'discard':
+      return (
+        <>
+          <path d="M3.5 5.5h13M8 5.5V4h4v1.5" />
+          <path d="M5 5.5l.9 11a1.5 1.5 0 0 0 1.5 1.4h5.2a1.5 1.5 0 0 0 1.5-1.4l.9-11M8.3 8.5v6M11.7 8.5v6" />
         </>
       );
     default:
