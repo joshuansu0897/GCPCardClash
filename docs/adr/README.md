@@ -13,3 +13,4 @@ Plain-Markdown log of architectural decisions governing this repository.
 | [ADR-0007](0007-one-boss-per-track-with-a-blueprint-difficulty-tier.md) | One boss per track with a blueprint-difficulty tier | Accepted | 2026-10-27 |
 | [ADR-0008](0008-authored-grid-architecture-diagrams-with-context-actors-and-request-response-lanes.md) | Authored grid architecture diagrams with context actors and request-response lanes | Accepted | 2026-10-27 |
 | [ADR-0009](0009-cc0-model-kits-a-code-only-scene-look-and-a-shared-sound-board.md) | CC0 model kits, a code-only scene look, and a shared sound board | Accepted | 2026-10-27 |
+| [ADR-0010](0010-ground-curriculum-content-in-official-google-cloud-documentation.md) | Ground curriculum content in official Google Cloud documentation | Accepted | 2026-10-27 |
