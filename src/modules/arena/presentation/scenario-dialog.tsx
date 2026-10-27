@@ -1,5 +1,5 @@
 /**
- * Native modal `<dialog>` for browsing the 4 GCP certification tracks and 8 blueprints.
+ * Native modal `<dialog>` for browsing the GCP certification tracks and their blueprints.
  */
 
 import { type JSX, useRef, useState } from 'react';
@@ -50,7 +50,7 @@ export function ScenarioCatalogDialog(props: ScenarioDialogProps): JSX.Element {
         </form>
       </div>
 
-      <TrackFilterTabs tracks={tracks} active={trackFilter} onSelect={setTrackFilter} />
+      <TrackFilterTabs tracks={tracks} total={blueprints.length} active={trackFilter} onSelect={setTrackFilter} />
 
       <div className="scenario-cards-grid">
         {visibleBlueprints.map((bp) => (
@@ -71,6 +71,7 @@ export function ScenarioCatalogDialog(props: ScenarioDialogProps): JSX.Element {
 
 function TrackFilterTabs(props: {
   readonly tracks: readonly TrackInfo[];
+  readonly total: number;
   readonly active: TrackId | 'all';
   readonly onSelect: (id: TrackId | 'all') => void;
 }): JSX.Element {
@@ -81,7 +82,7 @@ function TrackFilterTabs(props: {
         className={props.active === 'all' ? 'track-tab is-active' : 'track-tab'}
         onClick={() => props.onSelect('all')}
       >
-        All Tracks (8)
+        All Tracks ({props.total})
       </button>
       {props.tracks.map((track) => (
         <button

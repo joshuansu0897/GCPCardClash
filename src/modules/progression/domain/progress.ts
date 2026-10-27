@@ -70,14 +70,15 @@ export function calculateTotalStars(progress: CampaignProgress): number {
   return total;
 }
 
+/** Thresholds sit at about 15%, 40% and 75% of the campaign's 57 stars (19 blueprints x 3). */
 export function deriveArchitectRank(totalStars: number): ArchitectRank {
-  if (totalStars >= 18) {
+  if (totalStars >= 42) {
     return 'Principal Cloud Fellow';
   }
-  if (totalStars >= 10) {
+  if (totalStars >= 24) {
     return 'Professional Cloud Architect';
   }
-  if (totalStars >= 4) {
+  if (totalStars >= 9) {
     return 'Associate Cloud Engineer';
   }
   return 'Cloud Explorer';

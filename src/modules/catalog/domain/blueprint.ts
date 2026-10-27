@@ -6,7 +6,7 @@
 
 import type { ShieldCapability, SubsystemInk } from './card';
 
-export type TrackId = 'foundations' | 'architect' | 'serverless-data' | 'vertex-ai';
+export type TrackId = 'foundations' | 'architect' | 'serverless-data' | 'vertex-ai' | 'platform-ops';
 
 export type DifficultyLevel = 'Associate' | 'Professional' | 'Specialist';
 

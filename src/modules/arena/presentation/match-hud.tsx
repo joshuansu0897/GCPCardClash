@@ -17,6 +17,7 @@ const TRACK_ENEMY_ICON: Readonly<Record<TrackId, TechnicalIconName>> = {
   architect: 'edge',
   'serverless-data': 'data',
   'vertex-ai': 'ai',
+  'platform-ops': 'bolt',
 };
 
 export interface RivalDockProps {

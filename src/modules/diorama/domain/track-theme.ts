@@ -6,7 +6,7 @@
 import type { TrackId } from '../../catalog';
 
 /** One creature family per track, drawn as that track's crowned boss. */
-export type EnemyForm = 'rack' | 'wraith' | 'hydra' | 'oracle';
+export type EnemyForm = 'rack' | 'wraith' | 'hydra' | 'oracle' | 'golem';
 
 export interface TrackTheme {
   readonly trackId: TrackId;
@@ -111,6 +111,26 @@ export const TRACK_THEMES: Readonly<Record<TrackId, TrackTheme>> = {
     enemyForm: 'oracle',
     enemyBody: '#F8FAFC',
     enemyGlow: '#E879F9',
+  },
+  'platform-ops': {
+    trackId: 'platform-ops',
+    name: 'Polar Control Plane',
+    skyTop: '#EEF2FF',
+    skyBottom: '#A5B4FC',
+    skyInk: '#1E1B4B',
+    hemisphereSky: '#EEF2FF',
+    hemisphereGround: '#A5B4FC',
+    sunColor: '#F8FAFC',
+    sunIntensity: 1.6,
+    grass: '#E2E8F0',
+    rock: '#64748B',
+    soil: '#475569',
+    cloud: '#FFFFFF',
+    cloudOpacity: 0.9,
+    ambient: { color: '#FFFFFF', count: 140, size: 3, speed: 0.35 },
+    enemyForm: 'golem',
+    enemyBody: '#475569',
+    enemyGlow: '#38BDF8',
   },
 };
 

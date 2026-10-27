@@ -60,6 +60,16 @@ export const RIVAL_ROSTER: readonly RivalPersona[] = [
     defeatLine: 'Grounded, evaluated, and guarded. I… cite my sources now.',
     signatureIncidentId: 'prompt-injection',
   },
+  {
+    id: 'the-yaml-golem',
+    trackId: 'platform-ops',
+    name: 'The YAML Golem',
+    epithet: 'Ten Thousand Lines of Copy-Pasted Config',
+    intro: 'GitOps? I hand-edit production. It is faster.',
+    taunt: 'kubectl edit, straight to prod. Your pods are crash-looping now.',
+    defeatLine: 'Declarative, versioned, rolled out by canary… I am finally reproducible.',
+    signatureIncidentId: 'config-drift',
+  },
 ];
 
 export function resolveRivalForTrack(trackId: TrackId): RivalPersona {

@@ -6,9 +6,15 @@ import type { CatalogRepository } from '../../application/ports/catalog-reposito
 import type { ArchitectureBlueprint, TrackId, TrackInfo } from '../../domain/blueprint';
 import type { CatalogCard } from '../../domain/card';
 import { VERTEX_AI_BLUEPRINTS } from './gcp-blueprints-ai';
+import { VERTEX_AI_EXPANSION_BLUEPRINTS } from './gcp-blueprints-ai-expansion';
 import { ARCHITECT_BLUEPRINTS } from './gcp-blueprints-architect';
+import { ARCHITECT_EXPANSION_BLUEPRINTS } from './gcp-blueprints-architect-expansion';
 import { SERVERLESS_DATA_BLUEPRINTS } from './gcp-blueprints-data';
+import { SERVERLESS_DATA_EXPANSION_BLUEPRINTS } from './gcp-blueprints-data-expansion';
 import { FOUNDATIONS_BLUEPRINTS } from './gcp-blueprints-foundations';
+import { FOUNDATIONS_EXPANSION_BLUEPRINTS } from './gcp-blueprints-foundations-expansion';
+import { PLATFORM_OPS_BLUEPRINTS } from './gcp-blueprints-platform';
+import { PLATFORM_OPS_EXPANSION_BLUEPRINTS } from './gcp-blueprints-platform-expansion';
 import { AI_AND_SHIELD_CARDS } from './gcp-cards-ai-shields';
 import { COMPUTE_AND_EDGE_CARDS } from './gcp-cards-compute-edge';
 import { DATA_AND_ANALYTICS_CARDS } from './gcp-cards-data';
@@ -42,6 +48,13 @@ const TRACK_CATALOG: readonly TrackInfo[] = [
     certificationFocus: 'Professional ML / GenAI Engineer',
     summary: 'Grounded Gemini RAG, Vertex AI Vector Search ScaNN, Document AI layout OCR, and VPC-SC governance.',
   },
+  {
+    id: 'platform-ops',
+    code: 'TRK-05',
+    title: 'Kubernetes & Platform Reliability',
+    certificationFocus: 'Professional Cloud DevOps Engineer',
+    summary: 'GKE Autopilot fleets, Cloud Deploy canaries, Artifact Registry supply chains, and SLO burn-rate alerting.',
+  },
 ];
 
 const ALL_CARDS: readonly CatalogCard[] = [
@@ -52,9 +65,15 @@ const ALL_CARDS: readonly CatalogCard[] = [
 
 const ALL_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
   ...FOUNDATIONS_BLUEPRINTS,
+  ...FOUNDATIONS_EXPANSION_BLUEPRINTS,
   ...ARCHITECT_BLUEPRINTS,
+  ...ARCHITECT_EXPANSION_BLUEPRINTS,
   ...SERVERLESS_DATA_BLUEPRINTS,
+  ...SERVERLESS_DATA_EXPANSION_BLUEPRINTS,
   ...VERTEX_AI_BLUEPRINTS,
+  ...VERTEX_AI_EXPANSION_BLUEPRINTS,
+  ...PLATFORM_OPS_BLUEPRINTS,
+  ...PLATFORM_OPS_EXPANSION_BLUEPRINTS,
 ];
 
 export class StaticCatalogRepository implements CatalogRepository {

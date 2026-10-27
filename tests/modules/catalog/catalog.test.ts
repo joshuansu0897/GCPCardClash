@@ -9,15 +9,19 @@ import {
 describe('Catalog bounded context', () => {
   const repository = createStaticCatalogRepository();
 
-  it('exposes all 4 certification tracks with 2 reference blueprints per track', () => {
+  it('exposes 5 certification tracks and 19 uniquely coded reference blueprints', () => {
     const overview = loadCurriculumOverview(repository);
 
-    expect(overview.tracks).toHaveLength(4);
-    expect(overview.blueprints).toHaveLength(8);
+    expect(overview.tracks).toHaveLength(5);
+    expect(overview.blueprints).toHaveLength(19);
+    expect(new Set(overview.blueprints.map((bp) => bp.id)).size).toBe(19);
+    expect(new Set(overview.blueprints.map((bp) => bp.code)).size).toBe(19);
+  });
 
-    for (const track of overview.tracks) {
-      const trackBlueprints = repository.listBlueprints(track.id);
-      expect(trackBlueprints).toHaveLength(2);
+  it('gives every track a full Associate, Professional and Specialist ladder', () => {
+    for (const track of repository.listTracks()) {
+      const levels = new Set(repository.listBlueprints(track.id).map((bp) => bp.difficulty));
+      expect([...levels].sort(), track.code).toEqual(['Associate', 'Professional', 'Specialist']);
     }
   });
 

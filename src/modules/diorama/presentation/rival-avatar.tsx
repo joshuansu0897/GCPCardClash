@@ -1,6 +1,6 @@
 /**
  * The track's enemy, its crowned boss, hovering beside the island and watching the board. Each
- * track has its own creature family (monolith, wraith, hydra, oracle). It lunges toward the
+ * track has its own creature family (monolith, wraith, hydra, oracle, golem). It lunges toward the
  * island and flares whenever the Rival lands a card, so its turn reads as the enemy acting.
  */
 
@@ -10,6 +10,7 @@ import { type JSX, type RefObject, useRef } from 'react';
 import type { Group, Mesh, MeshStandardMaterial } from 'three';
 
 import type { EnemyForm, TrackTheme } from '../domain/track-theme';
+import { GolemBody } from './golem-body';
 import { clamp01, nowSec } from './motion';
 import type { ActiveEffect } from './vfx-layer';
 
@@ -18,7 +19,7 @@ const LUNGE_SEC = 0.7;
 const FACING_YAW = 0.55;
 const FACING_PITCH = -0.32;
 const LUNGE_REACH = 1.4;
-const CROWN_Y: Readonly<Record<EnemyForm, number>> = { rack: 1.3, wraith: 1.4, hydra: 1.6, oracle: 0.95 };
+const CROWN_Y: Readonly<Record<EnemyForm, number>> = { rack: 1.3, wraith: 1.4, hydra: 1.6, oracle: 0.95, golem: 1.45 };
 /** The enemy is drawn half again as large as its model, and sunk to keep it level with the board. */
 export const ENEMY_SCALE = 1.55;
 const ENEMY_SINK = 0.55;
@@ -98,6 +99,8 @@ function EnemyBody(props: BodyProps): JSX.Element {
       return <HydraBody {...props} />;
     case 'oracle':
       return <OracleBody {...props} />;
+    case 'golem':
+      return <GolemBody theme={props.theme} glowRef={props.glowRef} />;
   }
 }
 

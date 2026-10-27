@@ -38,13 +38,16 @@ describe('Progression bounded context', () => {
     const repo = new InMemoryProgressRepository();
 
     expect(deriveArchitectRank(0)).toBe('Cloud Explorer');
-    expect(deriveArchitectRank(4)).toBe('Associate Cloud Engineer');
-    expect(deriveArchitectRank(10)).toBe('Professional Cloud Architect');
-    expect(deriveArchitectRank(18)).toBe('Principal Cloud Fellow');
+    expect(deriveArchitectRank(8)).toBe('Cloud Explorer');
+    expect(deriveArchitectRank(9)).toBe('Associate Cloud Engineer');
+    expect(deriveArchitectRank(24)).toBe('Professional Cloud Architect');
+    expect(deriveArchitectRank(42)).toBe('Principal Cloud Fellow');
 
     recordScenarioOutcome(repo, { blueprintId: 'b1', stars: 3, playerScore: 500 });
-    const updated = recordScenarioOutcome(repo, { blueprintId: 'b2', stars: 2, playerScore: 390 });
-    expect(calculateTotalStars(updated)).toBe(5);
+    recordScenarioOutcome(repo, { blueprintId: 'b2', stars: 2, playerScore: 390 });
+    recordScenarioOutcome(repo, { blueprintId: 'b3', stars: 3, playerScore: 480 });
+    const updated = recordScenarioOutcome(repo, { blueprintId: 'b4', stars: 1, playerScore: 210 });
+    expect(calculateTotalStars(updated)).toBe(9);
     expect(deriveArchitectRank(calculateTotalStars(updated))).toBe('Associate Cloud Engineer');
   });
 
