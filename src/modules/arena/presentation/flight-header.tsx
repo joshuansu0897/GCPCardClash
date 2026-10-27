@@ -6,6 +6,7 @@ import type { JSX } from 'react';
 
 import type { ArenaMode } from '../../battle';
 import type { ArchitectRank } from '../../progression';
+import type { BoardView } from './board-view-switch';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 
 export interface FlightHeaderProps {
@@ -18,6 +19,9 @@ export interface FlightHeaderProps {
   readonly totalStars: number;
   readonly maxCampaignStars: number;
   readonly rank: ArchitectRank;
+  /** Current playboard renderer, or `null` when only the 2D sheet is available. */
+  readonly boardView: BoardView | null;
+  readonly onChangeBoardView: (view: BoardView) => void;
   readonly onOpenScenarios: () => void;
   readonly onOpenRules: () => void;
   readonly onToggleMode: (nextMode: ArenaMode) => void;
@@ -50,6 +54,8 @@ export function FlightHeader(props: FlightHeaderProps): JSX.Element {
 
       <FlightControlNav
         mode={props.mode}
+        boardView={props.boardView}
+        onChangeBoardView={props.onChangeBoardView}
         totalStars={props.totalStars}
         maxCampaignStars={props.maxCampaignStars}
         onToggleMode={props.onToggleMode}
@@ -63,6 +69,8 @@ export function FlightHeader(props: FlightHeaderProps): JSX.Element {
 
 function FlightControlNav(props: {
   readonly mode: ArenaMode;
+  readonly boardView: BoardView | null;
+  readonly onChangeBoardView: (view: BoardView) => void;
   readonly totalStars: number;
   readonly maxCampaignStars: number;
   readonly onToggleMode: (nextMode: ArenaMode) => void;
@@ -92,6 +100,22 @@ function FlightControlNav(props: {
           Study
         </button>
       </div>
+
+      {props.boardView !== null && (
+        <div className="mode-switch" role="group" aria-label="Board View">
+          {(['3d', '2d'] as const).map((view) => (
+            <button
+              key={view}
+              type="button"
+              className={props.boardView === view ? 'mode-btn is-active' : 'mode-btn'}
+              aria-pressed={props.boardView === view}
+              onClick={() => props.onChangeBoardView(view)}
+            >
+              {view.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
 
       <button type="button" className="rail-btn" onClick={props.onOpenScenarios}>
         <TechnicalIcon name="star-filled" size={15} />

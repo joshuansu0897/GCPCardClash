@@ -731,3 +731,177 @@ dialog::backdrop {
   .debrief-metrics-grid { grid-template-columns: repeat(2, 1fr); }
   .scenario-cards-grid { grid-template-columns: 1fr; }
 }
+
+/* Cloud Diorama — 3D playboard stage, pad labels, and zone flags */
+.diorama-stage {
+  position: relative;
+  height: clamp(380px, 62vh, 640px);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 38%, rgba(255, 255, 255, 0.75), transparent 70%),
+    linear-gradient(180deg, #bfe3ff 0%, #dbeafe 46%, #fde7d3 100%);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08), inset 0 -40px 60px -30px rgba(251, 191, 36, 0.25);
+  touch-action: none;
+}
+
+.diorama-hint {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-2);
+  margin: 0;
+  padding: 3px 8px;
+  font-size: var(--text-xs);
+  color: var(--color-slate-ink);
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-pill);
+  pointer-events: none;
+}
+
+.pad-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  max-width: 190px;
+  font-family: var(--font-sans);
+  user-select: none;
+}
+
+.pad-label-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 190px;
+  padding: 3px 8px;
+  font: 600 11px/1.25 var(--font-sans);
+  color: var(--color-carbon-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--color-graphite-rule);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 10px -4px rgba(15, 23, 42, 0.35);
+  cursor: pointer;
+  transition: transform 160ms var(--ease-snappy), border-color 160ms;
+}
+
+.pad-label-title:hover {
+  transform: translateY(-1px);
+}
+
+.pad-label.is-owned-player .pad-label-title {
+  border-color: #2563eb;
+}
+
+.pad-label.is-owned-rival .pad-label-title {
+  border-color: #dc2626;
+}
+
+.pad-label.is-inspected .pad-label-title {
+  outline: 2px solid var(--color-ink-compute);
+  outline-offset: 1px;
+}
+
+.pad-label-code {
+  padding: 0 4px;
+  font: 700 10px/1.4 var(--font-mono);
+  color: #ffffff;
+  background: var(--color-carbon-ink);
+  border-radius: 4px;
+}
+
+.pad-label.is-owned-player .pad-label-code {
+  background: #2563eb;
+}
+
+.pad-label.is-owned-rival .pad-label-code {
+  background: #dc2626;
+}
+
+.pad-label-hint {
+  padding: 1px 6px;
+  font-size: 10px;
+  color: #14532d;
+  white-space: nowrap;
+  background: rgba(220, 252, 231, 0.95);
+  border-radius: var(--radius-pill);
+}
+
+.pad-label-action {
+  padding: 3px 9px;
+  font: 700 10.5px/1.3 var(--font-sans);
+  letter-spacing: 0.02em;
+  color: #ffffff;
+  background: var(--color-ink-compute);
+  border: 0;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-btn-primary);
+  cursor: pointer;
+}
+
+.pad-label-action.is-capture {
+  background: #b91c1c;
+}
+
+.pad-label-action.is-harden {
+  background: #0369a1;
+}
+
+.pad-label-action:disabled {
+  color: var(--color-slate-ink);
+  background: rgba(226, 232, 240, 0.95);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.zone-flag {
+  display: inline-block;
+  padding: 3px 10px;
+  font: 700 10px/1.3 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #ffffff;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 4px 10px -4px rgba(15, 23, 42, 0.4);
+  pointer-events: none;
+}
+
+.zone-flag.zone-ink-compute { background: var(--color-ink-compute); }
+.zone-flag.zone-ink-data { background: var(--color-ink-data); }
+.zone-flag.zone-ink-edge { background: var(--color-ink-edge); }
+.zone-flag.zone-ink-shield { background: var(--color-ink-shield); }
+.zone-flag.zone-ink-ai { background: var(--color-ink-ai); }
+
+@media (max-width: 640px) {
+  .diorama-stage {
+    height: clamp(320px, 56vh, 480px);
+  }
+
+  .pad-label-title {
+    max-width: 110px;
+    font-size: 10px;
+  }
+}
+
+.diorama-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.diorama-labels > * {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  will-change: transform;
+}
+
+.diorama-labels .pad-label {
+  pointer-events: auto;
+}

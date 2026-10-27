@@ -2,11 +2,11 @@
  * Primary Arena Workbench shell composing Header, Drafting Canvas, Inspector, Hand, and Dialogs.
  */
 
-import type { JSX } from 'react';
+import { type ComponentType, type JSX, useState } from 'react';
 
 import type { CatalogRepository } from '../../catalog';
 import { type ProgressRepository, deriveArchitectRank } from '../../progression';
-import { BlueprintCanvas } from './blueprint-canvas';
+import { type BoardRendererProps, type BoardView, BoardViewSwitch } from './board-view-switch';
 import { MatchDebriefDialog, RulesReferenceDialog } from './debrief-and-rules-dialogs';
 import { FlightHeader } from './flight-header';
 import { HandDock } from './hand-dock';
@@ -17,22 +17,31 @@ import { type ArenaControllerState, useArenaController } from './use-arena-contr
 export interface ArenaWorkbenchProps {
   readonly catalogRepository: CatalogRepository;
   readonly progressRepository: ProgressRepository;
+  /** Optional 3D playboard injected by the composition root; omitted when WebGL is unavailable. */
+  readonly boardRenderer3d?: ComponentType<BoardRendererProps>;
 }
 
 export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
   const ctrl = useArenaController(props.catalogRepository, props.progressRepository);
   const { matchState, activeBlueprint, curriculum } = ctrl;
+  const has3d = props.boardRenderer3d !== undefined;
+  const [boardView, setBoardView] = useState<BoardView>(has3d ? '3d' : '2d');
 
   return (
     <div className="workbench-shell">
-      <ArenaHeaderSection ctrl={ctrl} />
+      <ArenaHeaderSection
+        ctrl={ctrl}
+        boardView={has3d ? boardView : null}
+        onChangeBoardView={setBoardView}
+      />
 
       <main className="workbench-stage">
-        <BlueprintCanvas
+        <BoardViewSwitch
+          view={boardView}
+          renderer3d={props.boardRenderer3d}
+          onRendererFailed={() => setBoardView('2d')}
           blueprint={activeBlueprint}
-          mode={matchState.mode}
-          playerEnergy={matchState.playerEnergy}
-          deployedSlots={matchState.slots}
+          matchState={matchState}
           cardsById={curriculum.cardsById}
           selectedHandCard={ctrl.selectedCard}
           inspectedSlotId={ctrl.inspectedSlotId}
@@ -69,7 +78,11 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
   );
 }
 
-function ArenaHeaderSection(props: { readonly ctrl: ArenaControllerState }): JSX.Element {
+function ArenaHeaderSection(props: {
+  readonly ctrl: ArenaControllerState;
+  readonly boardView: BoardView | null;
+  readonly onChangeBoardView: (view: BoardView) => void;
+}): JSX.Element {
   const { ctrl } = props;
   const { matchState, activeBlueprint, curriculum } = ctrl;
 
@@ -84,6 +97,8 @@ function ArenaHeaderSection(props: { readonly ctrl: ArenaControllerState }): JSX
       totalStars={ctrl.totalStars}
       maxCampaignStars={curriculum.blueprints.length * 3}
       rank={deriveArchitectRank(ctrl.totalStars)}
+      boardView={props.boardView}
+      onChangeBoardView={props.onChangeBoardView}
       onOpenScenarios={() => ctrl.setCatalogOpen(true)}
       onOpenRules={() => ctrl.setRulesOpen(true)}
       onToggleMode={(nextMode) => ctrl.launchScenario(activeBlueprint.id, nextMode)}
