@@ -90,7 +90,7 @@ export function DioramaBoard(props: DioramaBoardProps): JSX.Element {
               slotState={matchState.slots[slot.id]}
               cardsById={props.cardsById}
               mode={matchState.mode}
-              affordance={resolvePadAffordance(matchState.slots[slot.id], props.selectedHandCard, matchState.playerEnergy)}
+              affordance={resolvePadAffordance(matchState, slot.id, props.selectedHandCard)}
               isInspected={props.inspectedSlotId === slot.id}
               bindRef={bind(`pad:${slot.id}`)}
               onInspectSlot={props.onInspectSlot}

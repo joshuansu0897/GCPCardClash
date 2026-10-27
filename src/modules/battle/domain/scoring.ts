@@ -9,7 +9,8 @@ export const FLOW_SYNERGY_BONUS = 40;
 export const BASE_SHIELD_POINTS = 35;
 export const RECOMMENDED_SHIELD_BONUS = 25;
 export const CAPTURE_SWING_BONUS = 25;
-export const RIVAL_CAPTURE_LOSS = 35;
+/** Points the previous owner loses when one of their nodes is captured. */
+export const CAPTURE_VICTIM_LOSS = 35;
 
 export function countConnectedOwnedNeighbors(
   blueprint: ArchitectureBlueprint,
@@ -68,6 +69,7 @@ export function evaluateMatchOutcome(state: MatchState): MatchOutcome {
   if (state.mode === 'study') {
     return {
       winner: 'player',
+      bossDefeated: false,
       stars: 1,
       shieldedPlayerNodes,
       summary: 'Guided Study walkthrough completed. Switch to Battle Mode to earn up to 3 Mastery Stars against the AI Rival.',
@@ -77,9 +79,12 @@ export function evaluateMatchOutcome(state: MatchState): MatchOutcome {
   // Resolve winner and 1-3 star mastery criteria
   const winner = resolveWinner(state.playerScore, state.rivalScore);
   const stars = computeBattleStars(winner, state.playerMistakes, shieldedPlayerNodes);
-  const summary = formatOutcomeSummary(winner, stars, state.playerMistakes, shieldedPlayerNodes);
+  const bossDefeated = state.rivalProfile === 'boss' && winner === 'player';
+  const summary = bossDefeated
+    ? `Boss defeated! ${formatOutcomeSummary(winner, stars, state.playerMistakes, shieldedPlayerNodes)}`
+    : formatOutcomeSummary(winner, stars, state.playerMistakes, shieldedPlayerNodes);
 
-  return { winner, stars, summary, shieldedPlayerNodes };
+  return { winner, bossDefeated, stars, summary, shieldedPlayerNodes };
 }
 
 function resolveWinner(playerScore: number, rivalScore: number): 'player' | 'rival' | 'tie' {

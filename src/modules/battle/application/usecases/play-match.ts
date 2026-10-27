@@ -1,39 +1,42 @@
 /**
- * Application use cases for starting a scenario match and executing player turn actions.
+ * Application use cases for starting a scenario match and executing turn actions.
  */
 
 import type { ArchitectureBlueprint, CatalogCard } from '../../../catalog';
-import { executeRivalArchitectTurn } from '../../domain/ai-rival';
+import { planRivalTurn } from '../../domain/ai-rival';
+import { readSide, writeSide } from '../../domain/architect-side';
+import { resolveBossForTrack } from '../../domain/boss-roster';
 import {
   DISCARDS_PER_TURN,
   MAX_TURN_ENERGY,
   dealScenarioDeck,
   drawUpToHandLimit,
 } from '../../domain/deck-rules';
+import { drawIncidentForTurn, strikeIncident } from '../../domain/incident-rules';
 import type {
   ArenaMode,
-  HandCardInstance,
   MatchState,
+  RivalProfile,
   SlotDeployment,
   TurnAction,
 } from '../../domain/match-types';
-import {
-  appendLog,
-  applyEnergyCard,
-  applyServiceDeployment,
-} from '../../domain/placement-rules';
-import { applyShieldToSlot, discardAndDrawCard } from '../../domain/shield-rules';
+import { appendLog } from '../../domain/placement-rules';
+import { performCardAction } from '../../domain/turn-actions';
+
+const RIVAL_DECK_SEED_OFFSET = 7919;
 
 export interface StartMatchOptions {
   readonly blueprint: ArchitectureBlueprint;
   readonly allCards: readonly CatalogCard[];
   readonly mode: ArenaMode;
+  readonly rivalProfile?: RivalProfile;
   readonly seed?: number;
 }
 
 export function startScenarioMatch(options: StartMatchOptions): MatchState {
-  // Initialize empty blueprint slot map
   const { blueprint, allCards, mode, seed = 202610 } = options;
+  const rivalProfile: RivalProfile = mode === 'study' ? 'standard' : (options.rivalProfile ?? 'standard');
+
   const slots: Record<string, SlotDeployment> = {};
   for (const slot of blueprint.slots) {
     slots[slot.id] = {
@@ -45,25 +48,34 @@ export function startScenarioMatch(options: StartMatchOptions): MatchState {
     };
   }
 
-  // Deal deterministic scenario deck and opening log
+  // Both architects draw from the same scenario card pool, shuffled independently
   const deal = dealScenarioDeck(blueprint, allCards, seed);
-  const initialEnergy = mode === 'study' ? MAX_TURN_ENERGY : 2;
-  const logs = appendLog([], 1, 'system', buildOpeningLogEntry(blueprint, mode));
+  const rivalDeal = dealScenarioDeck(blueprint, allCards, seed + RIVAL_DECK_SEED_OFFSET, 'rival');
+  const logs = appendLog([], 1, 'system', buildOpeningLogEntry(blueprint, mode, rivalProfile));
 
   return {
     blueprintId: blueprint.id,
     mode,
+    rivalProfile,
+    seed,
     turn: 1,
     maxEnergy: MAX_TURN_ENERGY,
-    playerEnergy: initialEnergy,
+    playerEnergy: mode === 'study' ? MAX_TURN_ENERGY : 2,
+    // The Rival gains +1 at the start of its turn, so it also plays Turn 1 with 2 Energy.
     rivalEnergy: 1,
     discardsRemaining: DISCARDS_PER_TURN,
     playerScore: 0,
     rivalScore: 0,
     playerMistakes: 0,
+    rivalMistakes: 0,
     hand: deal.hand,
     drawPile: deal.drawPile,
     discardPile: deal.discardPile,
+    rivalHand: rivalDeal.hand,
+    rivalDrawPile: rivalDeal.drawPile,
+    rivalDiscardPile: rivalDeal.discardPile,
+    rivalDiscardsRemaining: DISCARDS_PER_TURN,
+    incident: null,
     slots,
     logs,
     status: 'active',
@@ -71,12 +83,22 @@ export function startScenarioMatch(options: StartMatchOptions): MatchState {
   };
 }
 
-function buildOpeningLogEntry(blueprint: ArchitectureBlueprint, mode: ArenaMode) {
+function buildOpeningLogEntry(blueprint: ArchitectureBlueprint, mode: ArenaMode, rivalProfile: RivalProfile) {
   if (mode === 'study') {
     return {
       severity: 'system' as const,
       headline: `Guided Study Mode — ${blueprint.code} ${blueprint.title}`,
       detail: 'Optimal GCP services and recommended shields are revealed on every slot. Click any node or test-deploy freely.',
+      pointsDelta: 0,
+    };
+  }
+
+  if (rivalProfile === 'boss') {
+    const boss = resolveBossForTrack(blueprint.trackId);
+    return {
+      severity: 'rival' as const,
+      headline: `BOSS BATTLE — ${boss.name}, ${boss.epithet}`,
+      detail: `"${boss.intro}" Incidents strike every 2 turns, including ${boss.name}'s signature move.`,
       pointsDelta: 0,
     };
   }
@@ -98,69 +120,49 @@ export function performMatchAction(
   if (state.status === 'completed') {
     return state;
   }
-
   if (action.type === 'end-turn') {
-    return advanceToNextTurn(state, blueprint, cardsById);
+    const steps = resolveEndTurnSequence(state, blueprint, cardsById);
+    return steps[steps.length - 1] ?? state;
   }
-
-  const handItem = state.hand.find((h) => h.instanceId === action.instanceId);
-  const card = handItem !== undefined ? cardsById[handItem.cardId] : undefined;
-  if (handItem === undefined || card === undefined) {
-    return state;
-  }
-
-  return dispatchCardAction({ state, blueprint, handItem, card, action });
+  return performCardAction(state, blueprint, cardsById, 'player', action);
 }
 
-function dispatchCardAction(params: {
-  readonly state: MatchState;
-  readonly blueprint: ArchitectureBlueprint;
-  readonly handItem: HandCardInstance;
-  readonly card: CatalogCard;
-  readonly action: Exclude<TurnAction, { readonly type: 'end-turn' }>;
-}): MatchState {
-  const { state, blueprint, handItem, card, action } = params;
-
-  if (action.type === 'discard-card') {
-    return discardAndDrawCard(state, handItem.instanceId, card.title);
-  }
-  if (action.type === 'play-energy' && card.kind === 'energy') {
-    return applyEnergyCard(state, handItem, card);
-  }
-  if (action.type === 'deploy-service' && card.kind === 'service') {
-    return applyServiceDeployment({ state, blueprint, handItem, card, slotId: action.slotId });
-  }
-  if (action.type === 'apply-shield' && card.kind === 'shield') {
-    return applyShieldToSlot({ state, blueprint, handItem, card, slotId: action.slotId });
-  }
-
-  return state;
-}
-
-function advanceToNextTurn(
+/**
+ * Ends the player's turn and returns every intermediate state: one per Rival action, then the
+ * start of the next turn (with any incident that strikes). The last element is the settled state.
+ */
+export function resolveEndTurnSequence(
   state: MatchState,
   blueprint: ArchitectureBlueprint,
   cardsById: Readonly<Record<string, CatalogCard>>,
-): MatchState {
-  // Run AI Rival Architect turn when in Battle mode
-  const afterRival = executeRivalArchitectTurn(state, blueprint, cardsById);
-  if (afterRival.status === 'completed') {
-    return afterRival;
+): readonly MatchState[] {
+  if (state.status === 'completed') {
+    return [state];
   }
 
-  // Refill player hand, grant baseline +1 energy (or full 6 in Study mode), and advance turn counter
-  const refilled = drawUpToHandLimit(afterRival.hand, afterRival.drawPile, afterRival.discardPile);
-  const nextEnergy = afterRival.mode === 'study'
-    ? afterRival.maxEnergy
-    : Math.min(afterRival.maxEnergy, afterRival.playerEnergy + 1);
+  const player = readSide(state, 'player');
+  const refilled = writeSide(state, 'player', drawUpToHandLimit(player.hand, player.drawPile, player.discardPile));
 
-  return {
-    ...afterRival,
-    turn: afterRival.turn + 1,
-    playerEnergy: nextEnergy,
+  const rivalSteps = planRivalTurn(refilled, blueprint, cardsById);
+  const afterRival = rivalSteps[rivalSteps.length - 1] ?? refilled;
+  if (afterRival.status === 'completed') {
+    return rivalSteps;
+  }
+
+  return [...rivalSteps, startNextTurn(afterRival, blueprint)];
+}
+
+function startNextTurn(state: MatchState, blueprint: ArchitectureBlueprint): MatchState {
+  const turn = state.turn + 1;
+  const next: MatchState = {
+    ...state,
+    turn,
+    playerEnergy: state.mode === 'study' ? state.maxEnergy : Math.min(state.maxEnergy, state.playerEnergy + 1),
     discardsRemaining: DISCARDS_PER_TURN,
-    hand: refilled.hand,
-    drawPile: refilled.drawPile,
-    discardPile: refilled.discardPile,
+    incident: null,
   };
+
+  const signature = state.rivalProfile === 'boss' ? resolveBossForTrack(blueprint.trackId).signatureIncidentId : null;
+  const incident = drawIncidentForTurn(next, turn, signature);
+  return incident !== null ? strikeIncident(next, blueprint, incident) : next;
 }

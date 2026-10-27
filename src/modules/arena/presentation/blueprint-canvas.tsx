@@ -4,7 +4,7 @@
 
 import type { JSX } from 'react';
 
-import type { ArenaMode, SlotDeployment } from '../../battle';
+import { type ArenaMode, type MatchState, type SlotDeployment, quoteServiceCost, quoteShieldCost } from '../../battle';
 import type {
   ArchitectureBlueprint,
   ArchitectureSlot,
@@ -17,6 +17,7 @@ import { ProtocolFlowSchedule, TopologyEdgesSvg } from './topology-edges-svg';
 
 export interface BlueprintCanvasProps {
   readonly blueprint: ArchitectureBlueprint;
+  readonly matchState: MatchState;
   readonly mode: ArenaMode;
   readonly playerEnergy: number;
   readonly deployedSlots: Readonly<Record<string, SlotDeployment>>;
@@ -51,6 +52,7 @@ export function BlueprintCanvas(props: BlueprintCanvasProps): JSX.Element {
               <ZoneColumnFrame
                 key={zone.id}
                 zone={zone}
+                matchState={props.matchState}
                 slots={blueprint.slots.filter((s) => s.zoneId === zone.id)}
                 mode={props.mode}
                 playerEnergy={props.playerEnergy}
@@ -134,6 +136,7 @@ function ActiveTargetBanner(props: {
 
 interface ZoneColumnFrameProps {
   readonly zone: PerimeterZone;
+  readonly matchState: MatchState;
   readonly slots: readonly ArchitectureSlot[];
   readonly mode: ArenaMode;
   readonly playerEnergy: number;
@@ -160,6 +163,7 @@ function ZoneColumnFrame(props: ZoneColumnFrameProps): JSX.Element {
           <SlotCutoutCard
             key={slot.id}
             slot={slot}
+            matchState={props.matchState}
             zoneInk={zone.ink}
             mode={props.mode}
             playerEnergy={props.playerEnergy}
@@ -178,6 +182,7 @@ function ZoneColumnFrame(props: ZoneColumnFrameProps): JSX.Element {
 
 interface SlotCutoutProps {
   readonly slot: ArchitectureSlot;
+  readonly matchState: MatchState;
   readonly zoneInk: PerimeterZone['ink'];
   readonly mode: ArenaMode;
   readonly playerEnergy: number;
@@ -194,7 +199,7 @@ function SlotCutoutCard(props: SlotCutoutProps): JSX.Element {
   const deployedService = slotState?.serviceCardId ? cardsById[slotState.serviceCardId] : undefined;
   const deployedShield = slotState?.shieldCardId ? cardsById[slotState.shieldCardId] : undefined;
   const optimalService = slot.acceptedServiceIds[0] ? cardsById[slot.acceptedServiceIds[0]] : undefined;
-  const actionLabel = resolveSlotActionLabel(slotState, selectedHandCard, props.playerEnergy);
+  const actionLabel = resolveSlotActionLabel(props.matchState, slotState, selectedHandCard);
 
   const ownerClass = slotState?.owner ? `is-owned-${slotState.owner}` : 'is-open';
   const inspectClass = isInspected ? 'is-inspected' : '';
@@ -251,32 +256,32 @@ function SlotOwnerStamp(props: { readonly slotState: SlotDeployment | undefined 
 }
 
 function resolveSlotActionLabel(
+  state: MatchState,
   slotState: SlotDeployment | undefined,
   selectedCard: CatalogCard | undefined,
-  playerEnergy: number,
 ): string | null {
   if (selectedCard?.kind === 'service') {
-    return resolveServiceVerb(slotState, selectedCard, playerEnergy);
+    return resolveServiceVerb(state, slotState, selectedCard);
   }
   if (selectedCard?.kind === 'shield' && slotState?.owner === 'player' && slotState.shieldCardId === null) {
-    return 'Harden (1E)';
+    return `Harden (${quoteShieldCost(state, selectedCard)}E)`;
   }
   return null;
 }
 
 function resolveServiceVerb(
+  state: MatchState,
   slotState: SlotDeployment | undefined,
   card: ServiceCard,
-  playerEnergy: number,
 ): string | null {
+  const cost = quoteServiceCost(state, 'player', card, slotState);
+  if (cost === null) {
+    return null;
+  }
   if (!slotState?.owner) {
-    return `Deploy (${card.energyCost}E)`;
+    return `Deploy (${cost}E)`;
   }
-  if (slotState.owner === 'rival' && slotState.shieldCardId === null) {
-    const capCost = card.energyCost + 1;
-    return playerEnergy >= capCost ? `Capture (${capCost}E)` : `Need ${capCost}E`;
-  }
-  return null;
+  return state.playerEnergy >= cost ? `Capture (${cost}E)` : `Need ${cost}E`;
 }
 
 function SlotFooterRow(props: {

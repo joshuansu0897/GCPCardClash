@@ -4,17 +4,18 @@
 
 import { type JSX, useRef } from 'react';
 
-import type { ArenaMode, MatchOutcome, MatchState } from '../../battle';
+import { type BossProfile, type MatchOutcome, type MatchState, resolveBossForTrack } from '../../battle';
 import type { ArchitectureBlueprint } from '../../catalog';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 import { StarRatingRow } from './scenario-dialog';
+import { type PlayMode, resolvePlayMode } from './use-arena-controller';
 import { useNativeModalDialog } from './use-modal-dialog';
 
 export interface DebriefDialogProps {
   readonly isOpen: boolean;
   readonly blueprint: ArchitectureBlueprint;
   readonly matchState: MatchState;
-  readonly onReplay: (mode: ArenaMode) => void;
+  readonly onReplay: (mode: PlayMode) => void;
   readonly onOpenCatalog: () => void;
   readonly onClose: () => void;
 }
@@ -55,17 +56,33 @@ export function MatchDebriefDialog(props: DebriefDialogProps): JSX.Element {
   );
 }
 
+function BossVerdict(props: { readonly boss: BossProfile; readonly outcome: MatchOutcome }): JSX.Element {
+  const { boss, outcome } = props;
+  return (
+    <div className={`boss-verdict ${outcome.bossDefeated ? 'is-victory' : 'is-defeat'}`}>
+      <TechnicalIcon name="crown" size={22} />
+      <div>
+        <strong>{outcome.bossDefeated ? `${boss.name} Defeated!` : `${boss.name} Prevails`}</strong>
+        <p>"{outcome.bossDefeated ? boss.defeatLine : boss.taunt}"</p>
+      </div>
+    </div>
+  );
+}
+
 function DebriefMetricsBody(props: {
   readonly blueprint: ArchitectureBlueprint;
   readonly matchState: MatchState;
   readonly outcome: MatchOutcome;
-  readonly onReplay: (mode: ArenaMode) => void;
+  readonly onReplay: (mode: PlayMode) => void;
   readonly onOpenCatalog: () => void;
 }): JSX.Element {
   const { blueprint, matchState, outcome, onReplay, onOpenCatalog } = props;
+  const playMode = resolvePlayMode(matchState);
+  const boss = resolveBossForTrack(blueprint.trackId);
 
   return (
     <div className="debrief-content">
+      {playMode === 'boss' && <BossVerdict boss={boss} outcome={outcome} />}
       <div className="debrief-verdict-row">
         <StarRatingRow stars={outcome.stars} />
         <p className="debrief-summary-text">{outcome.summary}</p>
@@ -84,9 +101,15 @@ function DebriefMetricsBody(props: {
       </div>
 
       <div className="debrief-actions-row">
-        <button type="button" className="tile-primary-btn" onClick={() => onReplay('battle')}>
-          Replay Battle
+        <button type="button" className="tile-primary-btn" onClick={() => onReplay(playMode === 'boss' ? 'boss' : 'battle')}>
+          {playMode === 'boss' ? `Rematch ${boss.name}` : 'Replay Battle'}
         </button>
+        {playMode === 'battle' && (
+          <button type="button" className="tile-boss-btn" onClick={() => onReplay('boss')}>
+            <TechnicalIcon name="crown" size={14} />
+            <span>Challenge {boss.name}</span>
+          </button>
+        )}
         <button type="button" className="tile-secondary-btn" onClick={() => onReplay('study')}>
           Inspect in Study Mode
         </button>
@@ -148,6 +171,15 @@ export function RulesReferenceDialog(props: RulesDialogProps): JSX.Element {
         </li>
         <li>
           <strong>4. Defense-in-Depth Shields & Slot Capture:</strong> Unshielded nodes can be compromised by the opponent for <code>Cost + 1E</code>. Attach Cloud IAM, Cloud Armor, VPC-SC, KMS, or IAP shields (1E) for +35/+60 points and permanent takeover immunity.
+        </li>
+        <li>
+          <strong>5. A Fair Rival:</strong> The Rival draws from its own deck under your exact limits — a 6-card hand, +1E per turn up to 6E, 2 cycles per turn, and the same costs. You can see how many cards it holds, never which ones.
+        </li>
+        <li>
+          <strong>6. Cloud Incidents:</strong> Every 3 turns (every 2 against a boss) an incident strikes BOTH architects — budget freezes, zero-days, outages, audits, surges. Read the banner: some bend the rules for that turn only.
+        </li>
+        <li>
+          <strong>7. Bosses:</strong> Finish a blueprint once to unlock its track boss. Bosses follow the same rules, but chain moves, capture from Turn 2, and bring a signature incident.
         </li>
       </ol>
     </dialog>

@@ -3,7 +3,7 @@
  * Mirrors the engine's legality so the pad can glow before the player commits.
  */
 
-import type { SlotDeployment } from '../../battle';
+import { type MatchState, quoteServiceCost, quoteShieldCost } from '../../battle';
 import type { CatalogCard } from '../../catalog';
 
 export type PadAffordance =
@@ -13,23 +13,24 @@ export type PadAffordance =
   | { readonly kind: 'harden'; readonly cost: number }
   | { readonly kind: 'unaffordable'; readonly cost: number };
 
+/** Uses the engine's own cost quotes, so active incidents (e.g. Zero-Day) are reflected. */
 export function resolvePadAffordance(
-  slotState: SlotDeployment | undefined,
+  state: MatchState,
+  slotId: string,
   selectedCard: CatalogCard | undefined,
-  playerEnergy: number,
 ): PadAffordance {
+  const slotState = state.slots[slotId];
+
   if (selectedCard?.kind === 'service') {
-    if (!slotState?.owner) {
-      return withBudget({ kind: 'deploy', cost: selectedCard.energyCost }, playerEnergy);
+    const cost = quoteServiceCost(state, 'player', selectedCard, slotState);
+    if (cost === null) {
+      return { kind: 'none' };
     }
-    if (slotState.owner === 'rival' && slotState.shieldCardId === null) {
-      return withBudget({ kind: 'capture', cost: selectedCard.energyCost + 1 }, playerEnergy);
-    }
-    return { kind: 'none' };
+    return withBudget({ kind: slotState?.owner === 'rival' ? 'capture' : 'deploy', cost }, state.playerEnergy);
   }
 
   if (selectedCard?.kind === 'shield' && slotState?.owner === 'player' && slotState.shieldCardId === null) {
-    return withBudget({ kind: 'harden', cost: selectedCard.energyCost }, playerEnergy);
+    return withBudget({ kind: 'harden', cost: quoteShieldCost(state, selectedCard) }, state.playerEnergy);
   }
 
   return { kind: 'none' };

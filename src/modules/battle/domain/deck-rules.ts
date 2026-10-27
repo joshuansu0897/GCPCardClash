@@ -15,7 +15,7 @@ export interface DeckDealResult {
   readonly discardPile: readonly HandCardInstance[];
 }
 
-function createSeededRandom(seed: number): () => number {
+export function createSeededRandom(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
     state = (state + 0x6d2b79f5) >>> 0;
@@ -79,12 +79,13 @@ export function dealScenarioDeck(
   blueprint: ArchitectureBlueprint,
   allCards: readonly CatalogCard[],
   seed: number,
+  instancePrefix = 'card',
 ): DeckDealResult {
   // Build and shuffle card instances
   const rawCardIds = collectScenarioCardIds(blueprint, allCards);
   const shuffledIds = shuffleWithSeed(rawCardIds, seed);
   const instances: HandCardInstance[] = shuffledIds.map((cardId, idx) => ({
-    instanceId: `card-${seed}-${idx + 1}`,
+    instanceId: `${instancePrefix}-${seed}-${idx + 1}`,
     cardId,
   }));
 

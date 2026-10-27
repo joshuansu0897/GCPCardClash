@@ -4,13 +4,14 @@
 
 import type { JSX } from 'react';
 
-import type { ArenaMode } from '../../battle';
 import type { ArchitectRank } from '../../progression';
 import type { BoardView } from './board-view-switch';
+import type { PlayMode } from './use-arena-controller';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 
 export interface FlightHeaderProps {
-  readonly mode: ArenaMode;
+  readonly mode: PlayMode;
+  readonly bossUnlocked: boolean;
   readonly turn: number;
   readonly playerScore: number;
   readonly rivalScore: number;
@@ -24,7 +25,7 @@ export interface FlightHeaderProps {
   readonly onChangeBoardView: (view: BoardView) => void;
   readonly onOpenScenarios: () => void;
   readonly onOpenRules: () => void;
-  readonly onToggleMode: (nextMode: ArenaMode) => void;
+  readonly onToggleMode: (nextMode: PlayMode) => void;
   readonly onRestartMatch: () => void;
 }
 
@@ -54,6 +55,7 @@ export function FlightHeader(props: FlightHeaderProps): JSX.Element {
 
       <FlightControlNav
         mode={props.mode}
+        bossUnlocked={props.bossUnlocked}
         boardView={props.boardView}
         onChangeBoardView={props.onChangeBoardView}
         totalStars={props.totalStars}
@@ -68,12 +70,13 @@ export function FlightHeader(props: FlightHeaderProps): JSX.Element {
 }
 
 function FlightControlNav(props: {
-  readonly mode: ArenaMode;
+  readonly mode: PlayMode;
+  readonly bossUnlocked: boolean;
   readonly boardView: BoardView | null;
   readonly onChangeBoardView: (view: BoardView) => void;
   readonly totalStars: number;
   readonly maxCampaignStars: number;
-  readonly onToggleMode: (nextMode: ArenaMode) => void;
+  readonly onToggleMode: (nextMode: PlayMode) => void;
   readonly onOpenScenarios: () => void;
   readonly onRestartMatch: () => void;
   readonly onOpenRules: () => void;
@@ -90,6 +93,17 @@ function FlightControlNav(props: {
           onClick={() => props.onToggleMode('battle')}
         >
           Battle
+        </button>
+        <button
+          type="button"
+          className={mode === 'boss' ? 'mode-btn is-active is-boss' : 'mode-btn is-boss'}
+          aria-pressed={mode === 'boss'}
+          disabled={!props.bossUnlocked && mode !== 'boss'}
+          title={props.bossUnlocked ? 'Challenge this track’s boss' : 'Finish this blueprint once to unlock its boss'}
+          onClick={() => props.onToggleMode('boss')}
+        >
+          <TechnicalIcon name={props.bossUnlocked || mode === 'boss' ? 'crown' : 'lock'} size={13} />
+          Boss
         </button>
         <button
           type="button"

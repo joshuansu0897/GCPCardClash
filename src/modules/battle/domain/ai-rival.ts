@@ -1,224 +1,274 @@
 /**
- * Deterministic tactical AI Rival Architect turn logic.
- * Prioritizes capturing unshielded player nodes (after Turn 2), deploying open slots, and shielding.
+ * Deterministic Rival Architect AI. The Rival holds a real hand drawn from its own deck and may
+ * only play cards it holds, paying the same costs as the player through `performCardAction`.
+ * A turn is returned as a list of intermediate states so the UI can play it out step by step.
+ *
+ * Profiles differ only in tactics, never in rules:
+ * - `standard` deploys once and shields once per turn, claiming open slots in blueprint order.
+ * - `boss` chains several moves, captures from Turn 2, and picks the highest-value target.
  */
 
-import type {
-  ArchitectureBlueprint,
-  ArchitectureSlot,
-  CatalogCard,
-  ServiceCard,
-  ShieldCard,
-} from '../../catalog';
-import type { MatchState, SlotDeployment } from './match-types';
-import { appendLog, finalizeIfComplete } from './placement-rules';
+import type { ArchitectureBlueprint, CatalogCard, ServiceCard, ShieldCard } from '../../catalog';
+import { readSide, writeSide } from './architect-side';
+import { incidentDeployBonus, quoteServiceCost, quoteShieldCost } from './cost-rules';
+import { DISCARDS_PER_TURN, drawUpToHandLimit } from './deck-rules';
+import type { HandCardInstance, MatchState, RivalProfile } from './match-types';
+import { logAction } from './placement-rules';
 import {
+  CAPTURE_SWING_BONUS,
+  CAPTURE_VICTIM_LOSS,
   FLOW_SYNERGY_BONUS,
-  RIVAL_CAPTURE_LOSS,
   countConnectedOwnedNeighbors,
 } from './scoring';
+import { type CardAction, performCardAction } from './turn-actions';
 
-const RIVAL_TURN_ENERGY_GRANT = 2;
-const RIVAL_MAX_ENERGY = 5;
+interface RivalTactics {
+  readonly maxDeploys: number;
+  readonly maxShields: number;
+  readonly maxCycles: number;
+  readonly captureFromTurn: number;
+  readonly optimize: boolean;
+}
 
-export function executeRivalArchitectTurn(
+const TACTICS: Readonly<Record<RivalProfile, RivalTactics>> = {
+  standard: { maxDeploys: 1, maxShields: 1, maxCycles: 1, captureFromTurn: 3, optimize: false },
+  boss: { maxDeploys: 3, maxShields: 2, maxCycles: 2, captureFromTurn: 2, optimize: true },
+};
+
+const MAX_ACTIONS_PER_TURN = 16;
+
+interface TurnCounters {
+  deploys: number;
+  shields: number;
+  cycles: number;
+}
+
+type PlannedAction = { readonly kind: keyof TurnCounters | 'energy'; readonly action: CardAction };
+
+interface HeldCard<C extends CatalogCard> {
+  readonly item: HandCardInstance;
+  readonly card: C;
+}
+
+/** Start-of-turn upkeep, identical to the player's: +1 Energy (capped) and a fresh cycle quota. */
+export function beginRivalTurn(state: MatchState): MatchState {
+  return writeSide(state, 'rival', {
+    energy: Math.min(state.maxEnergy, state.rivalEnergy + 1),
+    discardsRemaining: DISCARDS_PER_TURN,
+  });
+}
+
+export function planRivalTurn(
   state: MatchState,
   blueprint: ArchitectureBlueprint,
   cardsById: Readonly<Record<string, CatalogCard>>,
-): MatchState {
+): readonly MatchState[] {
   if (state.status === 'completed' || state.mode === 'study') {
-    return state;
+    return [];
   }
 
-  // Recharge Rival Architect deploy energy
-  let working: MatchState = {
-    ...state,
-    rivalEnergy: Math.min(RIVAL_MAX_ENERGY, state.rivalEnergy + RIVAL_TURN_ENERGY_GRANT),
-  };
+  const tactics = TACTICS[state.rivalProfile];
+  const counters: TurnCounters = { deploys: 0, shields: 0, cycles: 0 };
+  const steps: MatchState[] = [];
+  let working = beginRivalTurn(state);
 
-  // Attempt one primary service move (capture unshielded node on Turn >= 3, else claim open slot)
-  working = performRivalPrimaryMove(working, blueprint, cardsById);
-  if (working.status === 'completed') {
-    return working;
+  for (let guard = 0; guard < MAX_ACTIONS_PER_TURN; guard += 1) {
+    const planned = chooseRivalAction(working, blueprint, cardsById, tactics, counters);
+    if (planned === null) {
+      break;
+    }
+    const next = performCardAction(working, blueprint, cardsById, 'rival', planned.action);
+    if (next === working) {
+      break;
+    }
+    if (planned.kind !== 'energy') {
+      counters[planned.kind] += 1;
+    }
+    working = next;
+    steps.push(working);
+    if (working.status === 'completed') {
+      return steps;
+    }
   }
 
-  // Harden an unshielded Rival node if 1 energy remains
-  return performRivalShieldMove(working, blueprint, cardsById);
-}
-
-function performRivalPrimaryMove(
-  state: MatchState,
-  blueprint: ArchitectureBlueprint,
-  cardsById: Readonly<Record<string, CatalogCard>>,
-): MatchState {
-  const vulnerableSlot = state.turn >= 3 ? findUnshieldedPlayerSlot(state, blueprint) : undefined;
-  if (vulnerableSlot !== undefined && state.rivalEnergy >= 3) {
-    return captureUnshieldedPlayerSlot(state, vulnerableSlot, cardsById);
-  }
-
-  const openSlot = blueprint.slots.find((slot) => state.slots[slot.id]?.owner === null);
-  if (openSlot === undefined) {
-    return state;
-  }
-
-  const primaryCard = resolvePrimaryService(openSlot, cardsById);
-  if (primaryCard === undefined || state.rivalEnergy < primaryCard.energyCost) {
-    return appendRivalReserveLog(state);
-  }
-
-  return deployRivalOpenSlot(state, blueprint, openSlot, primaryCard);
-}
-
-function findUnshieldedPlayerSlot(
-  state: MatchState,
-  blueprint: ArchitectureBlueprint,
-): ArchitectureSlot | undefined {
-  return blueprint.slots.find((slot) => {
-    const deployed = state.slots[slot.id];
-    return deployed?.owner === 'player' && deployed.shieldCardId === null;
-  });
-}
-
-function resolvePrimaryService(
-  slot: ArchitectureSlot,
-  cardsById: Readonly<Record<string, CatalogCard>>,
-): ServiceCard | undefined {
-  const primaryId = slot.acceptedServiceIds[0];
-  const candidate = primaryId !== undefined ? cardsById[primaryId] : undefined;
-  return candidate?.kind === 'service' ? candidate : undefined;
-}
-
-function captureUnshieldedPlayerSlot(
-  state: MatchState,
-  slot: ArchitectureSlot,
-  cardsById: Readonly<Record<string, CatalogCard>>,
-): MatchState {
-  const svc = resolvePrimaryService(slot, cardsById);
-  if (svc === undefined) {
-    return state;
-  }
-
-  const updatedSlot: SlotDeployment = {
-    slotId: slot.id,
-    owner: 'rival',
-    serviceCardId: svc.id,
-    shieldCardId: null,
-    shieldMatchedRecommendation: false,
-  };
-
-  const points = Math.round(svc.basePoints * 0.85) + 20;
-  const logs = appendLog(state.logs, state.turn, 'rival', {
-    severity: 'rival',
-    headline: `Rival Compromised Unshielded ${slot.title}!`,
-    detail: `Because ${slot.title} lacked a Security Shield (${slot.recommendedShield}), the Rival took it over with ${svc.title}.`,
-    pointsDelta: points,
-  });
-
-  return {
-    ...state,
-    rivalEnergy: Math.max(0, state.rivalEnergy - 3),
-    rivalScore: state.rivalScore + points,
-    playerScore: Math.max(0, state.playerScore - RIVAL_CAPTURE_LOSS),
-    slots: { ...state.slots, [slot.id]: updatedSlot },
-    logs,
-  };
-}
-
-function deployRivalOpenSlot(
-  state: MatchState,
-  blueprint: ArchitectureBlueprint,
-  slot: ArchitectureSlot,
-  svc: ServiceCard,
-): MatchState {
-  const synergies = countConnectedOwnedNeighbors(blueprint, state.slots, slot.id, 'rival');
-  const points = Math.round(svc.basePoints * 0.85) + synergies * FLOW_SYNERGY_BONUS;
-
-  const updatedSlot: SlotDeployment = {
-    slotId: slot.id,
-    owner: 'rival',
-    serviceCardId: svc.id,
-    shieldCardId: null,
-    shieldMatchedRecommendation: false,
-  };
-
-  const logs = appendLog(state.logs, state.turn, 'rival', {
-    severity: 'rival',
-    headline: `Rival Deployed ${svc.title} -> ${slot.title}`,
-    detail: `Slot remains UNSHIELDED right now—you can capture it for ${svc.energyCost + 1} Energy before Rival hardens it!`,
-    pointsDelta: points,
-  });
-
-  const nextState: MatchState = {
-    ...state,
-    rivalEnergy: state.rivalEnergy - svc.energyCost,
-    rivalScore: state.rivalScore + points,
-    slots: { ...state.slots, [slot.id]: updatedSlot },
-    logs,
-  };
-
-  return finalizeIfComplete(nextState, blueprint);
-}
-
-function appendRivalReserveLog(state: MatchState): MatchState {
-  return {
-    ...state,
-    logs: appendLog(state.logs, state.turn, 'rival', {
+  if (steps.length === 0) {
+    working = logAction(working, 'rival', {
       severity: 'rival',
-      headline: 'Rival Provisioned Terraform Capacity',
-      detail: 'Rival banked Deploy Energy for a high-tier service deployment next turn.',
-      pointsDelta: 10,
-    }),
-    rivalScore: state.rivalScore + 10,
-  };
-}
-
-function performRivalShieldMove(
-  state: MatchState,
-  blueprint: ArchitectureBlueprint,
-  cardsById: Readonly<Record<string, CatalogCard>>,
-): MatchState {
-  const rivalUnshielded = state.rivalEnergy >= 1 ? findUnshieldedRivalSlot(state, blueprint) : undefined;
-  const shieldCard = rivalUnshielded !== undefined ? findRecommendedShield(rivalUnshielded, cardsById) : undefined;
-  const existing = rivalUnshielded !== undefined ? state.slots[rivalUnshielded.id] : undefined;
-
-  if (rivalUnshielded === undefined || shieldCard === undefined || existing === undefined) {
-    return state;
+      headline: 'Passed the Turn',
+      detail: 'Holding cards and banking Energy for a bigger play.',
+      pointsDelta: 0,
+    });
   }
 
-  const logs = appendLog(state.logs, state.turn, 'rival', {
-    severity: 'rival',
-    headline: `Rival Hardened ${rivalUnshielded.title} with ${shieldCard.title}`,
-    detail: 'Rival locked this perimeter node against capture (+45 Rival pts).',
-    pointsDelta: 45,
-  });
-
-  return {
-    ...state,
-    rivalEnergy: state.rivalEnergy - 1,
-    rivalScore: state.rivalScore + 45,
-    slots: {
-      ...state.slots,
-      [rivalUnshielded.id]: { ...existing, shieldCardId: shieldCard.id, shieldMatchedRecommendation: true },
-    },
-    logs,
-  };
+  // End-of-turn refill, identical to the player's
+  const side = readSide(working, 'rival');
+  working = writeSide(working, 'rival', drawUpToHandLimit(side.hand, side.drawPile, side.discardPile));
+  if (steps.length > 0) {
+    steps[steps.length - 1] = working;
+  } else {
+    steps.push(working);
+  }
+  return steps;
 }
 
-function findUnshieldedRivalSlot(
+function chooseRivalAction(
   state: MatchState,
   blueprint: ArchitectureBlueprint,
-): ArchitectureSlot | undefined {
-  return blueprint.slots.find((slot) => {
-    const deployed = state.slots[slot.id];
-    return deployed?.owner === 'rival' && deployed.shieldCardId === null;
-  });
+  cardsById: Readonly<Record<string, CatalogCard>>,
+  tactics: RivalTactics,
+  counters: TurnCounters,
+): PlannedAction | null {
+  const held = state.rivalHand
+    .map((item) => ({ item, card: cardsById[item.cardId] }))
+    .filter((h): h is HeldCard<CatalogCard> => h.card !== undefined);
+
+  const energyCard = held.find((h) => h.card.kind === 'energy');
+  if (energyCard !== undefined && state.rivalEnergy < state.maxEnergy) {
+    return { kind: 'energy', action: { type: 'play-energy', instanceId: energyCard.item.instanceId } };
+  }
+
+  if (counters.deploys < tactics.maxDeploys) {
+    const deploy = pickDeploy(state, blueprint, held, tactics);
+    if (deploy !== null) {
+      return { kind: 'deploys', action: deploy };
+    }
+  }
+
+  if (counters.shields < tactics.maxShields) {
+    const shield = pickShield(state, blueprint, held, tactics);
+    if (shield !== null) {
+      return { kind: 'shields', action: shield };
+    }
+  }
+
+  if (counters.cycles < tactics.maxCycles && state.rivalDiscardsRemaining > 0) {
+    const dead = held.find((h) => isDeadCard(state, blueprint, h.card));
+    if (dead !== undefined) {
+      return { kind: 'cycles', action: { type: 'discard-card', instanceId: dead.item.instanceId } };
+    }
+  }
+
+  return null;
 }
 
-function findRecommendedShield(
-  slot: ArchitectureSlot,
-  cardsById: Readonly<Record<string, CatalogCard>>,
-): ShieldCard | undefined {
-  return Object.values(cardsById).find(
-    (c): c is ShieldCard => c.kind === 'shield' && c.capability === slot.recommendedShield,
-  );
+interface DeployCandidate {
+  readonly instanceId: string;
+  readonly slotId: string;
+  readonly cost: number;
+  readonly value: number;
+  readonly isCapture: boolean;
+}
+
+function pickDeploy(
+  state: MatchState,
+  blueprint: ArchitectureBlueprint,
+  held: readonly HeldCard<CatalogCard>[],
+  tactics: RivalTactics,
+): CardAction | null {
+  const candidates: DeployCandidate[] = [];
+
+  for (const { item, card } of held) {
+    if (card.kind !== 'service') {
+      continue;
+    }
+    for (const slot of blueprint.slots) {
+      const candidate = evaluateDeploy(state, blueprint, item, card, slot.id, slot.acceptedServiceIds, tactics);
+      if (candidate !== null) {
+        candidates.push(candidate);
+      }
+    }
+  }
+
+  const chosen = tactics.optimize
+    ? [...candidates].sort((a, b) => b.value - a.value || a.cost - b.cost)[0]
+    : (candidates.find((c) => !c.isCapture) ?? candidates[0]);
+
+  return chosen !== undefined
+    ? { type: 'deploy-service', instanceId: chosen.instanceId, slotId: chosen.slotId }
+    : null;
+}
+
+function evaluateDeploy(
+  state: MatchState,
+  blueprint: ArchitectureBlueprint,
+  item: HandCardInstance,
+  card: ServiceCard,
+  slotId: string,
+  accepted: readonly string[],
+  tactics: RivalTactics,
+): DeployCandidate | null {
+  if (!accepted.includes(card.id)) {
+    return null;
+  }
+  const slotState = state.slots[slotId];
+  const cost = quoteServiceCost(state, 'rival', card, slotState);
+  if (cost === null || cost > state.rivalEnergy) {
+    return null;
+  }
+  const isCapture = slotState?.owner === 'player';
+  if (isCapture && state.turn < tactics.captureFromTurn) {
+    return null;
+  }
+
+  const ownSynergy = countConnectedOwnedNeighbors(blueprint, state.slots, slotId, 'rival') * FLOW_SYNERGY_BONUS;
+  const brokenPlayerSynergy = isCapture
+    ? countConnectedOwnedNeighbors(blueprint, state.slots, slotId, 'player') * FLOW_SYNERGY_BONUS
+    : 0;
+  const value =
+    card.basePoints +
+    ownSynergy +
+    incidentDeployBonus(state, blueprint, slotId) +
+    (isCapture ? CAPTURE_SWING_BONUS + CAPTURE_VICTIM_LOSS + brokenPlayerSynergy : 0);
+
+  return { instanceId: item.instanceId, slotId, cost, value, isCapture };
+}
+
+function pickShield(
+  state: MatchState,
+  blueprint: ArchitectureBlueprint,
+  held: readonly HeldCard<CatalogCard>[],
+  tactics: RivalTactics,
+): CardAction | null {
+  const shields = held.filter((h): h is HeldCard<ShieldCard> => h.card.kind === 'shield');
+  let best: { readonly action: CardAction; readonly value: number } | null = null;
+
+  for (const slot of blueprint.slots) {
+    const deployed = state.slots[slot.id];
+    if (deployed?.owner !== 'rival' || deployed.shieldCardId !== null) {
+      continue;
+    }
+    for (const { item, card } of shields) {
+      if (quoteShieldCost(state, card) > state.rivalEnergy) {
+        continue;
+      }
+      const matched = card.capability === slot.recommendedShield;
+      const connections = countConnectedOwnedNeighbors(blueprint, state.slots, slot.id, 'rival');
+      const value = (matched ? 100 : 0) + (tactics.optimize ? connections * 10 : 0);
+      if (best === null || value > best.value) {
+        best = { action: { type: 'apply-shield', instanceId: item.instanceId, slotId: slot.id }, value };
+      }
+    }
+    if (!tactics.optimize && best !== null) {
+      break;
+    }
+  }
+
+  return best?.action ?? null;
+}
+
+/** A card the Rival cannot use on this board right now — the one worth cycling away. */
+function isDeadCard(state: MatchState, blueprint: ArchitectureBlueprint, card: CatalogCard): boolean {
+  if (card.kind === 'energy') {
+    return state.rivalEnergy >= state.maxEnergy;
+  }
+  if (card.kind === 'shield') {
+    return false;
+  }
+  return !blueprint.slots.some((slot) => {
+    const deployed = state.slots[slot.id];
+    return (
+      slot.acceptedServiceIds.includes(card.id) &&
+      (deployed?.owner === null || (deployed?.owner === 'player' && deployed.shieldCardId === null))
+    );
+  });
 }

@@ -50,6 +50,7 @@ function DraftingSheet(props: BoardRendererProps): JSX.Element {
   return (
     <BlueprintCanvas
       blueprint={props.blueprint}
+      matchState={props.matchState}
       mode={props.matchState.mode}
       playerEnergy={props.matchState.playerEnergy}
       deployedSlots={props.matchState.slots}

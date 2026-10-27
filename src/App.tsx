@@ -10,6 +10,9 @@ import { createStaticCatalogRepository } from './modules/catalog';
 import { detectWebGLSupport, loadDioramaBoard } from './modules/diorama';
 import { createBrowserProgressRepository } from './modules/progression';
 
+/** Pause between Rival actions so its turn plays out like a real opponent. */
+const RIVAL_STEP_DELAY_MS = 750;
+
 const LazyDioramaBoard = lazy(async () => ({ default: await loadDioramaBoard() }));
 
 export function App(): JSX.Element {
@@ -22,6 +25,7 @@ export function App(): JSX.Element {
       catalogRepository={catalogRepository}
       progressRepository={progressRepository}
       boardRenderer3d={boardRenderer3d}
+      rivalStepDelayMs={RIVAL_STEP_DELAY_MS}
     />
   );
 }

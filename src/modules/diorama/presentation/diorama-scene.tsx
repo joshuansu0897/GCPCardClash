@@ -79,7 +79,7 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
               slot={slot}
               slotState={slotState}
               cardsById={props.cardsById}
-              affordance={resolvePadAffordance(slotState, props.selectedHandCard, matchState.playerEnergy)}
+              affordance={resolvePadAffordance(matchState, pad.slotId, props.selectedHandCard)}
               isInspected={props.inspectedSlotId === pad.slotId}
               popDelaySec={props.popDelays[pad.slotId] ?? 0}
               reducedMotion={props.reducedMotion}

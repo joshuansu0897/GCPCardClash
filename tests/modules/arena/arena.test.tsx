@@ -56,23 +56,25 @@ describe('Arena bounded context presentation', () => {
     expect(screen.getByLabelText('TURN: 02')).toBeDefined();
   });
 
-  it('tracks 3D tilt and holographic foil coordinates on double-bezel hand cards', () => {
+  it('tracks 3D tilt and holographic foil coordinates on fanned game cards', () => {
     const { container } = render(
       <ArenaWorkbench
         catalogRepository={createStaticCatalogRepository()}
         progressRepository={new InMemoryProgressRepository()}
       />,
     );
-    const bezel = container.querySelector<HTMLElement>('.deck-card-bezel');
-    expect(bezel?.querySelector('.deck-card-foil')).not.toBeNull();
-    if (bezel === null) return;
+    const bezel = container.querySelector<HTMLElement>('.game-card');
+    if (bezel === null) {
+      throw new Error('Expected at least one .game-card in the hand');
+    }
+    expect(bezel.querySelector('.gc-foil')).not.toBeNull();
 
     bezel.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 160 } as DOMRect);
     fireEvent(bezel, new MouseEvent('pointermove', { bubbles: true, clientX: 150, clientY: 40 }));
     expect(bezel.style.getPropertyValue('--pointer-x')).toBe('75%');
     expect(bezel.style.getPropertyValue('--tilt-y')).toBe('2.50deg');
 
-    fireEvent(bezel, new MouseEvent('pointerout', { bubbles: true, relatedTarget: document.body }));
+    fireEvent.pointerLeave(bezel);
     expect(bezel.style.getPropertyValue('--tilt-x')).toBe('0deg');
     expect(bezel.style.getPropertyValue('--tilt-y')).toBe('0deg');
   });

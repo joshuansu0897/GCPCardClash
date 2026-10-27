@@ -21,6 +21,9 @@ export type TechnicalIconName =
   | 'check'
   | 'arrow-right'
   | 'refresh'
+  | 'crown'
+  | 'lock'
+  | 'cards'
   | 'close';
 
 export interface TechnicalIconProps {
@@ -113,6 +116,27 @@ function renderUtilityPaths(name: TechnicalIconName): JSX.Element {
         <>
           <path d="M16.5 5.5v4h-4" />
           <path d="M16 9.5a6.5 6.5 0 1 0 1.2 4.5" />
+        </>
+      );
+    case 'crown':
+      return (
+        <>
+          <path d="M3 7l3.5 3L10 4.5 13.5 10 17 7l-1.5 8h-11L3 7z" />
+          <path d="M4.5 17.5h11" />
+        </>
+      );
+    case 'lock':
+      return (
+        <>
+          <rect x="4.5" y="9" width="11" height="8" rx="1.5" />
+          <path d="M7 9V6.5a3 3 0 0 1 6 0V9M10 12.3v1.6" />
+        </>
+      );
+    case 'cards':
+      return (
+        <>
+          <rect x="7" y="3" width="9" height="12.5" rx="1.5" />
+          <path d="M5 5.5l-1.3.4a1.5 1.5 0 0 0-1 1.8l2.6 9.4a1.5 1.5 0 0 0 1.8 1l5.2-1.4" />
         </>
       );
     default:

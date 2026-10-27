@@ -4,10 +4,11 @@
 
 import { type JSX, useRef, useState } from 'react';
 
-import type { ArenaMode } from '../../battle';
+import { resolveBossForTrack } from '../../battle';
 import type { ArchitectureBlueprint, TrackId, TrackInfo } from '../../catalog';
-import type { CampaignProgress } from '../../progression';
+import { type CampaignProgress, isBossUnlocked } from '../../progression';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
+import type { PlayMode } from './use-arena-controller';
 import { useNativeModalDialog } from './use-modal-dialog';
 
 export interface ScenarioDialogProps {
@@ -16,7 +17,7 @@ export interface ScenarioDialogProps {
   readonly blueprints: readonly ArchitectureBlueprint[];
   readonly activeBlueprintId: string;
   readonly progress: CampaignProgress;
-  readonly onSelectScenario: (blueprintId: string, mode: ArenaMode) => void;
+  readonly onSelectScenario: (blueprintId: string, mode: PlayMode) => void;
   readonly onClose: () => void;
 }
 
@@ -59,6 +60,8 @@ export function ScenarioCatalogDialog(props: ScenarioDialogProps): JSX.Element {
             isCurrent={bp.id === activeBlueprintId}
             stars={progress.records[bp.id]?.bestStars ?? 0}
             bestScore={progress.records[bp.id]?.bestScore ?? 0}
+            bossUnlocked={isBossUnlocked(progress, bp.id)}
+            bossDefeated={progress.records[bp.id]?.bossDefeated ?? false}
             onLaunch={(mode) => onSelectScenario(bp.id, mode)}
           />
         ))}
@@ -100,9 +103,12 @@ function ScenarioBlueprintTile(props: {
   readonly isCurrent: boolean;
   readonly stars: 0 | 1 | 2 | 3;
   readonly bestScore: number;
-  readonly onLaunch: (mode: ArenaMode) => void;
+  readonly bossUnlocked: boolean;
+  readonly bossDefeated: boolean;
+  readonly onLaunch: (mode: PlayMode) => void;
 }): JSX.Element {
   const { blueprint, isCurrent, stars, bestScore, onLaunch } = props;
+  const boss = resolveBossForTrack(blueprint.trackId);
 
   return (
     <article className={isCurrent ? 'scenario-tile is-current' : 'scenario-tile'}>
@@ -119,11 +125,26 @@ function ScenarioBlueprintTile(props: {
         <span className="spec-tag">{blueprint.difficulty}</span>
         <span className="spec-tag">{blueprint.slots.length} Nodes</span>
         <span className="spec-tag">Best: {bestScore} PTS</span>
+        {props.bossDefeated && (
+          <span className="spec-tag is-boss-defeated">
+            <TechnicalIcon name="crown" size={12} /> {boss.name} defeated
+          </span>
+        )}
       </div>
 
       <div className="scenario-tile-actions">
         <button type="button" className="tile-primary-btn" onClick={() => onLaunch('battle')}>
           Start Battle
+        </button>
+        <button
+          type="button"
+          className="tile-boss-btn"
+          disabled={!props.bossUnlocked}
+          title={props.bossUnlocked ? `${boss.name} — ${boss.epithet}` : 'Finish this blueprint once to unlock its boss'}
+          onClick={() => onLaunch('boss')}
+        >
+          <TechnicalIcon name={props.bossUnlocked ? 'crown' : 'lock'} size={14} />
+          <span>{props.bossUnlocked ? `Boss: ${boss.name}` : 'Boss Locked'}</span>
         </button>
         <button type="button" className="tile-secondary-btn" onClick={() => onLaunch('study')}>
           Study Blueprint

@@ -7,6 +7,9 @@ export type PlayerActor = 'player' | 'rival';
 
 export type ArenaMode = 'battle' | 'study';
 
+/** `standard` is the everyday Rival Architect; `boss` is a track boss with sharper tactics and its own incidents. */
+export type RivalProfile = 'standard' | 'boss';
+
 export type TurnLogSeverity =
   | 'deploy'
   | 'shield'
@@ -14,6 +17,7 @@ export type TurnLogSeverity =
   | 'energy'
   | 'mistake'
   | 'rival'
+  | 'incident'
   | 'system';
 
 export interface HandCardInstance {
@@ -41,14 +45,25 @@ export interface TurnLogEntry {
 
 export interface MatchOutcome {
   readonly winner: 'player' | 'rival' | 'tie';
+  readonly bossDefeated: boolean;
   readonly stars: 0 | 1 | 2 | 3;
   readonly summary: string;
   readonly shieldedPlayerNodes: number;
 }
 
+export interface ActiveIncident {
+  readonly incidentId: string;
+  /** Turn the incident struck; it stays active for both architects until the next turn begins. */
+  readonly turn: number;
+  /** Zone knocked out by an outage incident, when the incident picked one. */
+  readonly affectedZoneId: string | null;
+}
+
 export interface MatchState {
   readonly blueprintId: string;
   readonly mode: ArenaMode;
+  readonly rivalProfile: RivalProfile;
+  readonly seed: number;
   readonly turn: number;
   readonly maxEnergy: number;
   readonly playerEnergy: number;
@@ -57,9 +72,16 @@ export interface MatchState {
   readonly playerScore: number;
   readonly rivalScore: number;
   readonly playerMistakes: number;
+  readonly rivalMistakes: number;
   readonly hand: readonly HandCardInstance[];
   readonly drawPile: readonly HandCardInstance[];
   readonly discardPile: readonly HandCardInstance[];
+  /** The Rival plays from its own deck under the exact same hand, energy, and cycle limits. */
+  readonly rivalHand: readonly HandCardInstance[];
+  readonly rivalDrawPile: readonly HandCardInstance[];
+  readonly rivalDiscardPile: readonly HandCardInstance[];
+  readonly rivalDiscardsRemaining: number;
+  readonly incident: ActiveIncident | null;
   readonly slots: Readonly<Record<string, SlotDeployment>>;
   readonly logs: readonly TurnLogEntry[];
   readonly status: 'active' | 'completed';

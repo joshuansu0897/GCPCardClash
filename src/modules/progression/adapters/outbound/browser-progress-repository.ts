@@ -32,7 +32,8 @@ function parseMasteryEntry(blueprintId: string, raw: unknown): ScenarioMasteryRe
     return null;
   }
 
-  return { blueprintId, bestStars: stars, bestScore, completedCount };
+  const bossDefeated = raw['bossDefeated'] === true;
+  return { blueprintId, bestStars: stars, bestScore, completedCount, bossDefeated };
 }
 
 function parseCampaignProgress(rawJson: string | null): CampaignProgress {

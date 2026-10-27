@@ -1,15 +1,18 @@
 /**
- * Primary Arena Workbench shell composing Header, Drafting Canvas, Inspector, Hand, and Dialogs.
+ * Primary Arena Workbench shell: header, Rival tray, incident ticker, playboard, inspector,
+ * player hand, and the overlays (incident announcement, turn banner, dialogs).
  */
 
 import { type ComponentType, type JSX, useState } from 'react';
 
+import { BOSS_INCIDENT_CADENCE, type MatchState, STANDARD_INCIDENT_CADENCE, getIncidentCard } from '../../battle';
 import type { CatalogRepository } from '../../catalog';
 import { type ProgressRepository, deriveArchitectRank } from '../../progression';
 import { type BoardRendererProps, type BoardView, BoardViewSwitch } from './board-view-switch';
 import { MatchDebriefDialog, RulesReferenceDialog } from './debrief-and-rules-dialogs';
 import { FlightHeader } from './flight-header';
 import { HandDock } from './hand-dock';
+import { IncidentAnnouncement, IncidentTicker, RivalDock, TurnPhaseBanner } from './match-hud';
 import { ScenarioCatalogDialog } from './scenario-dialog';
 import { SpecInspectorPanel } from './spec-inspector-panel';
 import { type ArenaControllerState, useArenaController } from './use-arena-controller';
@@ -19,16 +22,20 @@ export interface ArenaWorkbenchProps {
   readonly progressRepository: ProgressRepository;
   /** Optional 3D playboard injected by the composition root; omitted when WebGL is unavailable. */
   readonly boardRenderer3d?: ComponentType<BoardRendererProps>;
+  /** Pause between Rival actions so its turn plays out visibly; 0 resolves the turn instantly. */
+  readonly rivalStepDelayMs?: number;
 }
 
 export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
-  const ctrl = useArenaController(props.catalogRepository, props.progressRepository);
+  const ctrl = useArenaController(props.catalogRepository, props.progressRepository, props.rivalStepDelayMs ?? 0);
   const { matchState, activeBlueprint, curriculum } = ctrl;
   const has3d = props.boardRenderer3d !== undefined;
   const [boardView, setBoardView] = useState<BoardView>(has3d ? '3d' : '2d');
+  const activeIncident = matchState.incident !== null ? (getIncidentCard(matchState.incident.incidentId) ?? null) : null;
+  const affectedZoneId = matchState.incident?.affectedZoneId ?? null;
 
   return (
-    <div className="workbench-shell">
+    <div className={`workbench-shell ${ctrl.playMode === 'boss' ? 'is-boss-battle' : ''}`}>
       <ArenaHeaderSection
         ctrl={ctrl}
         boardView={has3d ? boardView : null}
@@ -36,18 +43,26 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
       />
 
       <main className="workbench-stage">
-        <BoardViewSwitch
-          view={boardView}
-          renderer3d={props.boardRenderer3d}
-          onRendererFailed={() => setBoardView('2d')}
-          blueprint={activeBlueprint}
-          matchState={matchState}
-          cardsById={curriculum.cardsById}
-          selectedHandCard={ctrl.selectedCard}
-          inspectedSlotId={ctrl.inspectedSlotId}
-          onInspectSlot={ctrl.handleInspectSlot}
-          onTargetSlot={ctrl.handleTargetSlot}
-        />
+        <div className="arena-main-column">
+          <RivalDock matchState={matchState} boss={ctrl.boss} isActing={ctrl.rivalActing} />
+          <IncidentTicker
+            incident={activeIncident}
+            zoneLabel={activeBlueprint.zones.find((z) => z.id === affectedZoneId)?.label ?? null}
+            turnsUntilNext={turnsUntilNextIncident(matchState)}
+          />
+          <BoardViewSwitch
+            view={boardView}
+            renderer3d={props.boardRenderer3d}
+            onRendererFailed={() => setBoardView('2d')}
+            blueprint={activeBlueprint}
+            matchState={matchState}
+            cardsById={curriculum.cardsById}
+            selectedHandCard={ctrl.selectedCard}
+            inspectedSlotId={ctrl.inspectedSlotId}
+            onInspectSlot={ctrl.handleInspectSlot}
+            onTargetSlot={ctrl.handleTargetSlot}
+          />
+        </div>
 
         <SpecInspectorPanel
           mode={matchState.mode}
@@ -63,19 +78,38 @@ export function ArenaWorkbench(props: ArenaWorkbenchProps): JSX.Element {
 
       <HandDock
         hand={matchState.hand}
+        drawPileCount={matchState.drawPile.length}
+        discardPileCount={matchState.discardPile.length}
         cardsById={curriculum.cardsById}
         selectedInstanceId={ctrl.selectedInstanceId}
         playerEnergy={matchState.playerEnergy}
         discardsRemaining={matchState.discardsRemaining}
         isMatchCompleted={matchState.status === 'completed'}
+        isLocked={ctrl.rivalActing}
         onSelectOrPlayCard={ctrl.handleCardClick}
         onDiscardCard={ctrl.handleDiscardCard}
         onEndTurn={ctrl.handleEndTurn}
       />
 
+      <TurnPhaseBanner
+        turn={matchState.turn}
+        rivalActing={ctrl.rivalActing}
+        boss={ctrl.boss}
+        hidden={matchState.mode === 'study' || matchState.status === 'completed' || (props.rivalStepDelayMs ?? 0) <= 0}
+      />
+      <IncidentAnnouncement incident={ctrl.announcedIncident} boss={ctrl.boss} onDismiss={ctrl.dismissIncident} />
       <ArenaDialogs ctrl={ctrl} />
     </div>
   );
+}
+
+function turnsUntilNextIncident(state: MatchState): number | null {
+  if (state.mode === 'study' || state.status === 'completed') {
+    return null;
+  }
+  const cadence = state.rivalProfile === 'boss' ? BOSS_INCIDENT_CADENCE : STANDARD_INCIDENT_CADENCE;
+  const remainder = state.turn % cadence;
+  return remainder === 0 ? cadence : cadence - remainder;
 }
 
 function ArenaHeaderSection(props: {
@@ -88,7 +122,8 @@ function ArenaHeaderSection(props: {
 
   return (
     <FlightHeader
-      mode={matchState.mode}
+      mode={ctrl.playMode}
+      bossUnlocked={ctrl.bossUnlocked}
       turn={matchState.turn}
       playerScore={matchState.playerScore}
       rivalScore={matchState.rivalScore}
@@ -103,7 +138,7 @@ function ArenaHeaderSection(props: {
       onOpenRules={() => ctrl.setRulesOpen(true)}
       onToggleMode={(nextMode) => ctrl.launchScenario(activeBlueprint.id, nextMode)}
       onRestartMatch={() =>
-        ctrl.launchScenario(activeBlueprint.id, matchState.mode, matchState.turn + 202610)
+        ctrl.launchScenario(activeBlueprint.id, ctrl.playMode, matchState.turn + 202610)
       }
     />
   );

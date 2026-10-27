@@ -118,27 +118,30 @@ describe('Diorama bounded context', () => {
     const funded: MatchState = { ...baseState, playerEnergy: 6 };
     const mine = withSlot(funded, slotA.id, { owner: 'player', serviceCardId: 'global-ext-alb' });
     const theirs = withSlot(funded, slotA.id, { owner: 'rival', serviceCardId: 'cloud-cdn' });
-    const pad = (state: MatchState, card: typeof service | typeof shield) =>
-      resolvePadAffordance(state.slots[slotA.id], card, state.playerEnergy);
 
     it('offers deploy on open pads and capture (+1E) on unshielded rival pads', () => {
-      expect(pad(funded, service)).toEqual({ kind: 'deploy', cost: service.energyCost });
-      expect(pad(theirs, service)).toEqual({ kind: 'capture', cost: service.energyCost + 1 });
+      expect(resolvePadAffordance(funded, slotA.id, service)).toEqual({ kind: 'deploy', cost: service.energyCost });
+      expect(resolvePadAffordance(theirs, slotA.id, service)).toEqual({ kind: 'capture', cost: service.energyCost + 1 });
       const shielded = withSlot(theirs, slotA.id, { shieldCardId: 'shield-armor' });
-      expect(pad(shielded, service).kind).toBe('none');
-      expect(pad(mine, service).kind).toBe('none');
+      expect(resolvePadAffordance(shielded, slotA.id, service).kind).toBe('none');
+      expect(resolvePadAffordance(mine, slotA.id, service).kind).toBe('none');
     });
 
     it('offers harden only on pads the player owns and has not shielded', () => {
-      expect(pad(mine, shield).kind).toBe('harden');
-      expect(pad(theirs, shield).kind).toBe('none');
-      expect(pad(funded, shield).kind).toBe('none');
+      expect(resolvePadAffordance(mine, slotA.id, shield).kind).toBe('harden');
+      expect(resolvePadAffordance(theirs, slotA.id, shield).kind).toBe('none');
+      expect(resolvePadAffordance(funded, slotA.id, shield).kind).toBe('none');
     });
 
     it('flags unaffordable targets with the required cost', () => {
-      const affordance = pad({ ...theirs, playerEnergy: 0 }, service);
+      const affordance = resolvePadAffordance({ ...theirs, playerEnergy: 0 }, slotA.id, service);
       expect(affordance).toEqual({ kind: 'unaffordable', cost: service.energyCost + 1 });
       expect(describeAffordance(affordance)).toBe(`Need ${service.energyCost + 1}E`);
+    });
+
+    it('reflects incident cost changes such as the Zero-Day capture discount', () => {
+      const zeroDay: MatchState = { ...theirs, incident: { incidentId: 'zero-day', turn: 1, affectedZoneId: null } };
+      expect(resolvePadAffordance(zeroDay, slotA.id, service)).toEqual({ kind: 'capture', cost: service.energyCost });
     });
   });
 

@@ -15,6 +15,7 @@ export interface ScenarioMasteryRecord {
   readonly bestStars: StarCount;
   readonly bestScore: number;
   readonly completedCount: number;
+  readonly bossDefeated: boolean;
 }
 
 export interface CampaignProgress {
@@ -26,6 +27,7 @@ export interface ScenarioUpdateInput {
   readonly blueprintId: string;
   readonly stars: StarCount;
   readonly playerScore: number;
+  readonly bossDefeated?: boolean;
 }
 
 export function createEmptyProgress(): CampaignProgress {
@@ -54,6 +56,7 @@ export function mergeScenarioCompletion(
         bestStars,
         bestScore,
         completedCount,
+        bossDefeated: (previous?.bossDefeated ?? false) || update.bossDefeated === true,
       },
     },
   };
@@ -78,4 +81,13 @@ export function deriveArchitectRank(totalStars: number): ArchitectRank {
     return 'Associate Cloud Engineer';
   }
   return 'Cloud Explorer';
+}
+
+/** A blueprint's boss unlocks once its standard battle has been completed at least once. */
+export function isBossUnlocked(progress: CampaignProgress, blueprintId: string): boolean {
+  return (progress.records[blueprintId]?.bestStars ?? 0) > 0;
+}
+
+export function countBossesDefeated(progress: CampaignProgress): number {
+  return Object.values(progress.records).filter((rec) => rec.bossDefeated).length;
 }
