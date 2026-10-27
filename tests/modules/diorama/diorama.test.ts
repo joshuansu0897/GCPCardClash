@@ -36,33 +36,39 @@ describe('Diorama bounded context', () => {
   describe('computeIslandLayout', () => {
     const layout = computeIslandLayout(blueprint);
 
-    it('places one pad per slot and one terrace per zone', () => {
+    it('places one pad per slot, one terrace per zone, and every context actor', () => {
       expect(layout.pads).toHaveLength(blueprint.slots.length);
       expect(layout.terraces).toHaveLength(blueprint.zones.length);
+      expect(layout.contexts.map((c) => c.nodeId)).toEqual((blueprint.contextNodes ?? []).map((n) => n.id));
     });
 
-    it('orders zone columns left-to-right and raises later columns into higher terraces', () => {
-      const xs = layout.terraces.map((t) => t.center[0]);
+    it('stands each pad on its own zone terrace, and later zones on higher terraces', () => {
       const ys = layout.terraces.map((t) => t.center[1]);
-      expect([...xs].sort((a, b) => a - b)).toEqual(xs);
       expect([...ys].sort((a, b) => a - b)).toEqual(ys);
-    });
-
-    it('centres the island on the origin and keeps every pad inside its footprint', () => {
-      const [width, depth] = layout.islandSize;
-      const xs = layout.terraces.map((t) => t.center[0]);
-      expect(Math.min(...xs) + Math.max(...xs)).toBeCloseTo(0);
       for (const pad of layout.pads) {
-        expect(Math.abs(pad.position[0])).toBeLessThan(width / 2);
-        expect(Math.abs(pad.position[2])).toBeLessThan(depth / 2);
+        const terrace = layout.terraces.find((t) => t.zoneId === pad.zoneId);
+        expect(pad.position[1]).toBe(terrace?.center[1]);
+        expect(Math.abs(pad.position[0] - (terrace?.center[0] ?? 0))).toBeLessThan((terrace?.size[0] ?? 0) / 2);
       }
     });
 
-    it('arcs every road above both of its endpoint pads', () => {
-      expect(layout.roads).toHaveLength(blueprint.edges.length);
+    it('keeps every pad and actor on the island, inside or outside the cloud as authored', () => {
+      const [width, depth] = layout.islandSize;
+      for (const position of [...layout.pads.map((p) => p.position), ...layout.contexts.map((c) => c.position)]) {
+        expect(Math.abs(position[0])).toBeLessThan(width / 2);
+        expect(Math.abs(position[2])).toBeLessThan(depth / 2);
+      }
+      const shoppers = layout.contexts.find((c) => c.nodeId === 'shoppers');
+      expect(shoppers?.position[0]).toBeLessThan(layout.cloud.center[0] - layout.cloud.size[0] / 2);
+    });
+
+    it('routes a lane per one-way flow and two per request/response pair, above every terrace', () => {
+      const pairs = blueprint.edges.filter((e) => e.returnLabel !== undefined).length;
+      expect(layout.roads).toHaveLength(blueprint.edges.length + pairs);
+      const highestTerrace = Math.max(...layout.terraces.map((t) => t.center[1]));
       for (const road of layout.roads) {
-        const [start, mid, end] = road.controlPoints;
-        expect(mid[1]).toBeGreaterThan(Math.max(start[1], end[1]));
+        expect(road.points.length).toBeGreaterThanOrEqual(2);
+        expect(road.points.every((p) => p[1] > highestTerrace)).toBe(true);
       }
     });
   });

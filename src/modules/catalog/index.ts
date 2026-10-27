@@ -5,13 +5,14 @@
 export type {
   ArchitectureBlueprint,
   ArchitectureSlot,
+  ContextNode,
+  ContextNodeKind,
   DifficultyLevel,
   FlowEdge,
+  GridCell,
   PerimeterZone,
-  SlotRow,
   TrackId,
   TrackInfo,
-  ZoneColumn,
 } from './domain/blueprint';
 
 export type {
@@ -25,6 +26,11 @@ export type {
   ShieldCard,
   SubsystemInk,
 } from './domain/card';
+
+export type { BlueprintDiagram, CellBounds, DiagramNode, DiagramNodeKind, DiagramZone } from './domain/diagram';
+export { boundsOf, cellInBounds, resolveBlueprintDiagram } from './domain/diagram';
+export type { DiagramLane, GridPoint, LaneDirection, LaneOptions } from './domain/diagram-routing';
+export { routeDiagramLanes } from './domain/diagram-routing';
 
 export type { CatalogRepository } from './application/ports/catalog-repository';
 export type { CurriculumOverview } from './application/usecases/list-blueprints';

@@ -11,3 +11,4 @@ Plain-Markdown log of architectural decisions governing this repository.
 | [ADR-0005](0005-free-discards-track-rivals-and-on-board-incidents.md) | Free Discards, Track Rivals and Worlds, and On-Board Incidents | Accepted | 2026-10-26 |
 | [ADR-0006](0006-immersive-3d-game-screen-with-a-measured-hud.md) | Immersive 3D game screen with a measured HUD | Accepted | 2026-10-27 |
 | [ADR-0007](0007-one-boss-per-track-with-a-blueprint-difficulty-tier.md) | One boss per track with a blueprint-difficulty tier | Accepted | 2026-10-27 |
+| [ADR-0008](0008-authored-grid-architecture-diagrams-with-context-actors-and-request-response-lanes.md) | Authored grid architecture diagrams with context actors and request-response lanes | Accepted | 2026-10-27 |

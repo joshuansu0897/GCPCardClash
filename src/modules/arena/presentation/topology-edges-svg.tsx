@@ -1,262 +1,128 @@
 /**
- * Deterministic orthogonal SVG flow-bus overlay and docked Protocol Dataflow Schedule.
+ * Routed SVG flow lanes over the 2D architecture diagram (request above, response below, arrows
+ * at the target) and the docked Protocol Dataflow Schedule listing every flow.
  */
 
 import type { JSX } from 'react';
 
 import { TechnicalIcon } from '../../../shared/gcp-icons';
 import type { SlotDeployment } from '../../battle';
-import type {
-  ArchitectureBlueprint,
-  ArchitectureSlot,
-  FlowEdge,
-  ZoneColumn,
+import {
+  type BlueprintDiagram,
+  type DiagramLane,
+  type FlowEdge,
+  type GridPoint,
+  routeDiagramLanes,
 } from '../../catalog';
 
-export interface TopologyEdgesSvgProps {
-  readonly blueprint: ArchitectureBlueprint;
+/** SVG units per diagram cell; the stage keeps this aspect ratio so lanes never stretch. */
+export const DIAGRAM_CELL = { width: 200, height: 150 } as const;
+/** Share of its cell a node card fills. */
+export const DIAGRAM_NODE = { width: 0.64, height: 0.74 } as const;
+
+const LANE_OPTIONS = { laneGap: 0.09, nodeHalf: { x: DIAGRAM_NODE.width / 2, y: DIAGRAM_NODE.height / 2 } };
+const LABEL_OFFSET = { x: 0.04, y: 0.07 } as const;
+
+export function DiagramFlowLayer(props: {
+  readonly diagram: BlueprintDiagram;
   readonly deployedSlots: Readonly<Record<string, SlotDeployment>>;
-  readonly maxRow: 2 | 3;
-}
-
-interface BusGeometry {
-  readonly pathData: string;
-  readonly badgeX: number;
-  readonly badgeY: number;
-}
-
-const COL_LEFT: Readonly<Record<ZoneColumn, number>> = { 1: 0, 2: 310, 3: 620 };
-const COL_RIGHT: Readonly<Record<ZoneColumn, number>> = { 1: 280, 2: 590, 3: 900 };
-const COL_CENTER: Readonly<Record<ZoneColumn, number>> = { 1: 140, 2: 450, 3: 760 };
-const ROW_Y: Readonly<Record<1 | 2 | 3, number>> = { 1: 102, 2: 242, 3: 382 };
-
-export function TopologyEdgesSvg(props: TopologyEdgesSvgProps): JSX.Element {
-  const { blueprint, deployedSlots, maxRow } = props;
-  const zoneColumns = new Map(blueprint.zones.map((z) => [z.id, z.column]));
-  const slotById = new Map(blueprint.slots.map((s) => [s.id, s]));
-  const viewHeight = maxRow === 3 ? 456 : 316;
+}): JSX.Element {
+  const { diagram, deployedSlots } = props;
+  const lanes = routeDiagramLanes(diagram, LANE_OPTIONS);
 
   return (
     <svg
       className="topology-flow-svg"
-      viewBox={`0 0 900 ${viewHeight}`}
-      preserveAspectRatio="none"
+      viewBox={`0 0 ${diagram.cols * DIAGRAM_CELL.width} ${diagram.rows * DIAGRAM_CELL.height}`}
       aria-hidden="true"
     >
       <FlowMarkerDefs />
-      {blueprint.edges.map((edge, idx) => (
-        <SingleFlowBus
-          key={edge.id}
-          edge={edge}
-          calloutCode={`F${idx + 1}`}
-          edgeIndex={idx}
-          slotById={slotById}
-          zoneColumns={zoneColumns}
-          deployedSlots={deployedSlots}
-        />
+      {lanes.map((lane) => (
+        <FlowLane key={lane.id} lane={lane} isSynergy={isPlayerSynergy(lane, deployedSlots)} />
       ))}
     </svg>
   );
 }
 
+function FlowLane(props: { readonly lane: DiagramLane; readonly isSynergy: boolean }): JSX.Element {
+  const { lane, isSynergy } = props;
+  const points = lane.points.map(toSvg).map(([x, y]) => `${x},${y}`).join(' ');
+  const [labelX, labelY] = toSvg({
+    x: lane.labelAt.x + lane.labelNormal.x * LABEL_OFFSET.x,
+    y: lane.labelAt.y + lane.labelNormal.y * LABEL_OFFSET.y,
+  });
+  const anchor = lane.labelNormal.x > 0.5 ? 'start' : lane.labelNormal.x < -0.5 ? 'end' : 'middle';
+
+  return (
+    <g className={`flow-edge is-${lane.direction} ${isSynergy ? 'is-synergy' : ''}`}>
+      <polyline
+        points={points}
+        fill="none"
+        stroke={isSynergy ? '#2563EB' : '#64748B'}
+        strokeWidth={isSynergy ? 2.4 : 1.5}
+        strokeDasharray={lane.direction === 'response' ? '5 4' : undefined}
+        markerEnd={isSynergy ? 'url(#flow-arrow-synergy)' : 'url(#flow-arrow-neutral)'}
+      />
+      {isSynergy && (
+        <polyline points={points} className="flow-pulse-stream" fill="none" stroke="#93C5FD" strokeWidth={2} strokeDasharray="6 18" />
+      )}
+      <text x={labelX} y={labelY} textAnchor={anchor} dominantBaseline="middle" className="flow-lane-label">
+        {lane.label}
+      </text>
+    </g>
+  );
+}
+
+function toSvg(point: GridPoint): readonly [number, number] {
+  return [(point.x - 0.5) * DIAGRAM_CELL.width, (point.y - 0.5) * DIAGRAM_CELL.height];
+}
+
 export function ProtocolFlowSchedule(props: {
-  readonly blueprint: ArchitectureBlueprint;
+  readonly diagram: BlueprintDiagram;
   readonly deployedSlots: Readonly<Record<string, SlotDeployment>>;
   readonly onInspectSlot: (slotId: string) => void;
 }): JSX.Element {
-  const { blueprint, deployedSlots, onInspectSlot } = props;
-  const slotById = new Map(blueprint.slots.map((s) => [s.id, s]));
+  const { diagram, deployedSlots, onInspectSlot } = props;
 
   return (
     <div className="protocol-bus-schedule" aria-label="Protocol Dataflow Schedule">
-      {blueprint.edges.map((edge, idx) => {
-        const fromTitle = slotById.get(edge.fromSlotId)?.title ?? edge.fromSlotId;
-        const toTitle = slotById.get(edge.toSlotId)?.title ?? edge.toSlotId;
-        const isSynergy = isPlayerSynergy(edge, deployedSlots);
-
-        return (
-          <button
-            key={edge.id}
-            type="button"
-            className={isSynergy ? 'bus-schedule-chip is-synergy' : 'bus-schedule-chip'}
-            onClick={() => onInspectSlot(edge.toSlotId)}
-          >
-            <span className="bus-callout-id">F{idx + 1}</span>
-            <span className="bus-endpoint">{fromTitle}</span>
-            <TechnicalIcon name="arrow-right" size={12} />
-            <span className="bus-endpoint">{toTitle}</span>
-            <span className="bus-protocol-tag">{edge.protocolLabel}</span>
-          </button>
-        );
-      })}
+      {diagram.edges.map((edge, idx) => (
+        <button
+          key={edge.id}
+          type="button"
+          className={isPlayerSynergy(edge, deployedSlots) ? 'bus-schedule-chip is-synergy' : 'bus-schedule-chip'}
+          onClick={() => onInspectSlot(diagram.nodesById[edge.toNodeId]?.kind === 'slot' ? edge.toNodeId : edge.fromNodeId)}
+        >
+          <span className="bus-callout-id">F{idx + 1}</span>
+          <span className="bus-endpoint">{diagram.nodesById[edge.fromNodeId]?.label ?? edge.fromNodeId}</span>
+          <TechnicalIcon name="arrow-right" size={12} />
+          <span className="bus-endpoint">{diagram.nodesById[edge.toNodeId]?.label ?? edge.toNodeId}</span>
+          <span className="bus-protocol-tag">
+            {edge.protocolLabel}
+            {edge.returnLabel !== undefined ? ` ⇄ ${edge.returnLabel}` : ''}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
 
 function isPlayerSynergy(
-  edge: FlowEdge,
+  flow: Pick<FlowEdge, 'fromNodeId' | 'toNodeId'>,
   deployedSlots: Readonly<Record<string, SlotDeployment>>,
 ): boolean {
-  return (
-    deployedSlots[edge.fromSlotId]?.owner === 'player' &&
-    deployedSlots[edge.toSlotId]?.owner === 'player'
-  );
+  return deployedSlots[flow.fromNodeId]?.owner === 'player' && deployedSlots[flow.toNodeId]?.owner === 'player';
 }
 
 function FlowMarkerDefs(): JSX.Element {
   return (
     <defs>
-      <marker
-        id="flow-arrow-neutral"
-        viewBox="0 0 10 10"
-        refX="8"
-        refY="5"
-        markerWidth="6"
-        markerHeight="6"
-        orient="auto-start-reverse"
-      >
-        <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#6E6A5E" />
+      <marker id="flow-arrow-neutral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#64748B" />
       </marker>
-      <marker
-        id="flow-arrow-synergy"
-        viewBox="0 0 10 10"
-        refX="8"
-        refY="5"
-        markerWidth="6"
-        markerHeight="6"
-        orient="auto-start-reverse"
-      >
+      <marker id="flow-arrow-synergy" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
         <path d="M 1 1.5 L 8.5 5 L 1 8.5 z" fill="#1A56DB" />
       </marker>
     </defs>
   );
-}
-
-function SingleFlowBus(props: {
-  readonly edge: FlowEdge;
-  readonly calloutCode: string;
-  readonly edgeIndex: number;
-  readonly slotById: ReadonlyMap<string, ArchitectureSlot>;
-  readonly zoneColumns: ReadonlyMap<string, ZoneColumn>;
-  readonly deployedSlots: Readonly<Record<string, SlotDeployment>>;
-}): JSX.Element | null {
-  const { edge, calloutCode, edgeIndex, slotById, zoneColumns, deployedSlots } = props;
-  const fromSlot = slotById.get(edge.fromSlotId);
-  const toSlot = slotById.get(edge.toSlotId);
-  if (fromSlot === undefined || toSlot === undefined) {
-    return null;
-  }
-
-  const geometry = computeBusGeometry(fromSlot, toSlot, zoneColumns, edgeIndex);
-  const isSynergy = isPlayerSynergy(edge, deployedSlots);
-
-  return (
-    <g className={isSynergy ? 'flow-edge is-synergy' : 'flow-edge'}>
-      <path
-        d={geometry.pathData}
-        fill="none"
-        stroke={isSynergy ? '#2563EB' : '#94A3B8'}
-        strokeWidth={isSynergy ? '2.75' : '1.6'}
-        strokeDasharray={isSynergy ? undefined : '6 5'}
-        markerEnd={isSynergy ? 'url(#flow-arrow-synergy)' : 'url(#flow-arrow-neutral)'}
-      />
-      {isSynergy && (
-        <path
-          d={geometry.pathData}
-          className="flow-pulse-stream"
-          fill="none"
-          stroke="#93C5FD"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeDasharray="6 18"
-        />
-      )}
-      <FlowCalloutStamp
-        x={geometry.badgeX}
-        y={geometry.badgeY}
-        code={calloutCode}
-        isSynergy={isSynergy}
-      />
-    </g>
-  );
-}
-
-function FlowCalloutStamp(props: {
-  readonly x: number;
-  readonly y: number;
-  readonly code: string;
-  readonly isSynergy: boolean;
-}): JSX.Element {
-  return (
-    <>
-      <rect
-        x={props.x - 12}
-        y={props.y - 8}
-        width="24"
-        height="16"
-        rx="2"
-        fill={props.isSynergy ? '#1A56DB' : '#16191D'}
-      />
-      <text
-        x={props.x}
-        y={props.y + 3.5}
-        textAnchor="middle"
-        fill="#FCFBF7"
-        fontSize="9.5"
-        fontWeight="600"
-        fontFamily="IBM Plex Mono, monospace"
-      >
-        {props.code}
-      </text>
-    </>
-  );
-}
-
-function computeBusGeometry(
-  fromSlot: ArchitectureSlot,
-  toSlot: ArchitectureSlot,
-  zoneColumns: ReadonlyMap<string, ZoneColumn>,
-  edgeIndex: number,
-): BusGeometry {
-  const fromCol = zoneColumns.get(fromSlot.zoneId) ?? 1;
-  const toCol = zoneColumns.get(toSlot.zoneId) ?? 1;
-  const startY = ROW_Y[fromSlot.row] + ((edgeIndex % 2) * 10 - 5);
-  const endY = ROW_Y[toSlot.row] + ((edgeIndex % 2) * 10 - 5);
-
-  if (fromCol === toCol) {
-    const centerX = COL_CENTER[fromCol];
-    const dir = Math.sign(toSlot.row - fromSlot.row) || 1;
-    const vStart = ROW_Y[fromSlot.row] + dir * 56;
-    const vEnd = ROW_Y[toSlot.row] - dir * 56;
-
-    return {
-      pathData: `M ${centerX} ${vStart} L ${centerX} ${vEnd}`,
-      badgeX: centerX,
-      badgeY: Math.round((vStart + vEnd) / 2),
-    };
-  }
-
-  const goingRight = toCol > fromCol;
-  const startX = goingRight ? COL_RIGHT[fromCol] : COL_LEFT[fromCol];
-  const endX = goingRight ? COL_LEFT[toCol] : COL_RIGHT[toCol];
-  const gutterX = resolveGutterX(fromCol, toCol);
-  const badgeY = Math.round((startY + endY) / 2) + (startY === endY ? 0 : (edgeIndex % 2) * 16 - 8);
-
-  return {
-    pathData: `M ${startX} ${startY} L ${gutterX} ${startY} L ${gutterX} ${endY} L ${endX} ${endY}`,
-    badgeX: gutterX,
-    badgeY,
-  };
-}
-
-function resolveGutterX(fromCol: ZoneColumn, toCol: ZoneColumn): number {
-  const minCol = Math.min(fromCol, toCol);
-  const maxCol = Math.max(fromCol, toCol);
-  if (minCol === 1 && maxCol === 2) {
-    return 295;
-  }
-  if (minCol === 2 && maxCol === 3) {
-    return 605;
-  }
-  return 295;
 }

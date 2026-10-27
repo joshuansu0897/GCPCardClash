@@ -149,11 +149,7 @@ function DioramaLabels(props: {
           {rivalName}
         </span>
       )}
-      {layout.terraces.map((terrace) => (
-        <span key={terrace.zoneId} ref={bind(`zone:${terrace.zoneId}`)} className={`zone-flag zone-ink-${terrace.ink}`}>
-          {terrace.label}
-        </span>
-      ))}
+      <DiagramTagLabels layout={layout} bind={bind} />
       {blueprint.slots.map((slot) => (
         <PadLabel
           key={slot.id}
@@ -172,19 +168,56 @@ function DioramaLabels(props: {
   );
 }
 
+/** Read-only diagram annotations: the cloud boundary tag, zone flags, actor names and lane labels. */
+function DiagramTagLabels(props: { readonly layout: IslandLayout; readonly bind: LabelBinder }): JSX.Element {
+  const { layout, bind } = props;
+
+  return (
+    <>
+      <span ref={bind('cloud')} className="cloud-tag">
+        Google Cloud
+      </span>
+      {layout.terraces.map((terrace) => (
+        <span key={terrace.zoneId} ref={bind(`zone:${terrace.zoneId}`)} className={`zone-flag zone-ink-${terrace.ink}`}>
+          {terrace.label}
+        </span>
+      ))}
+      {layout.contexts.map((context) => (
+        <span key={context.nodeId} ref={bind(`context:${context.nodeId}`)} className="context-label">
+          {context.label}
+        </span>
+      ))}
+      {layout.roads.map((road) => (
+        <span key={road.laneId} ref={bind(`lane:${road.laneId}`)} className={`lane-label is-${road.direction}`}>
+          {road.label}
+        </span>
+      ))}
+    </>
+  );
+}
+
 function computeLabelAnchors(
   layout: IslandLayout,
   rivalAnchor: readonly [number, number, number],
 ): readonly LabelAnchor[] {
+  const [cloudX, , cloudZ] = layout.cloud.center;
+  const [cloudW, cloudD] = layout.cloud.size;
   return [
     { id: 'rival', position: [rivalAnchor[0], rivalAnchor[1] - 1.7, rivalAnchor[2]] as const },
+    { id: 'cloud', position: [cloudX - cloudW / 2 + 0.3, 0, cloudZ + cloudD / 2] as const, align: 'start' as const },
     ...layout.terraces.map((t) => ({
       id: `zone:${t.zoneId}`,
-      position: [t.center[0], 0, layout.islandSize[1] / 2 - 0.15] as const,
+      position: [t.center[0] - t.size[0] / 2 + 0.15, t.center[1], t.center[2] + t.size[1] / 2 - 0.05] as const,
+      align: 'start' as const,
     })),
+    ...layout.contexts.map((c) => ({
+      id: `context:${c.nodeId}`,
+      position: [c.position[0], c.position[1], c.position[2] + 1.25] as const,
+    })),
+    ...layout.roads.map((r) => ({ id: `lane:${r.laneId}`, position: r.labelAt, align: r.labelAlign })),
     ...layout.pads.map((p) => ({
       id: `pad:${p.slotId}`,
-      position: [p.position[0], p.position[1] + 0.1, p.position[2] + PAD_SIZE / 2 + 0.25] as const,
+      position: [p.position[0], p.position[1] + 0.1, p.position[2] + PAD_SIZE / 2 - 0.7] as const,
     })),
   ];
 }

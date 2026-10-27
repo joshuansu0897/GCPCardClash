@@ -183,6 +183,8 @@ describe('Battle bounded context', () => {
       ['cloud-cdn', 'edge-cache'],
       ['cloud-run', 'web-runtime'],
       ['cloud-sql-ha', 'orders-db'],
+      ['pubsub-bus', 'order-events'],
+      ['cloud-run-functions', 'receipt-worker'],
     ];
     for (const [cardId, slotId] of deployPairs) {
       state = { ...state, playerEnergy: 6, hand: [{ instanceId: `id-${slotId}`, cardId }] };

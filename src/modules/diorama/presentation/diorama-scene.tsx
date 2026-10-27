@@ -1,6 +1,6 @@
 /**
  * R3F scene graph for the Cloud Diorama: track-themed lighting and sky, fitted camera rig,
- * floating island, slot pads, flow roads, the track's enemy, and transient VFX. Rendered inside `<Canvas>` by `DioramaBoard`.
+ * floating island, slot pads, context actors, flow lanes, the track's enemy, and transient VFX. Rendered inside `<Canvas>` by `DioramaBoard`.
  */
 
 import { Sparkles } from '@react-three/drei';
@@ -15,6 +15,7 @@ import type { TrackTheme } from '../domain/track-theme';
 import { resolvePadAffordance } from '../domain/pad-affordance';
 import { computeTerraceDecor } from '../domain/terrace-decor';
 import type { CameraFrame, ViewInsets } from '../domain/camera-fit';
+import { CloudBoundary, ContextActors } from './context-actors';
 import { FittedCameraRig } from './fitted-camera-rig';
 import { FloatingIsland, SkyClouds } from './floating-island';
 import { type LabelAnchor, LabelProjector, type LabelRegistry } from './label-overlay';
@@ -73,7 +74,9 @@ export function DioramaScene(props: DioramaSceneProps): JSX.Element {
           theme={theme}
           reducedMotion={props.reducedMotion}
         />
+        <CloudBoundary rect={layout.cloud} />
         <TerraceDecor decor={decor} foliage={theme.grass} />
+        <ContextActors contexts={layout.contexts} />
         <RoadFlowPipes roads={layout.roads} slots={matchState.slots} reducedMotion={props.reducedMotion} />
 
         <PadField scene={props} slotsById={slotsById} />

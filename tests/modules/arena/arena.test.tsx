@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { ArenaWorkbench } from '../../../src/modules/arena';
-import { TopologyEdgesSvg } from '../../../src/modules/arena/presentation/topology-edges-svg';
-import { createStaticCatalogRepository } from '../../../src/modules/catalog';
+import { DiagramFlowLayer } from '../../../src/modules/arena/presentation/topology-edges-svg';
+import { createStaticCatalogRepository, resolveBlueprintDiagram } from '../../../src/modules/catalog';
 import { InMemoryProgressRepository } from '../../../src/modules/progression';
 
 describe('Arena bounded context presentation', () => {
@@ -79,16 +79,18 @@ describe('Arena bounded context presentation', () => {
     expect(bezel.style.getPropertyValue('--tilt-y')).toBe('0deg');
   });
 
-  it('renders animated packet pulse streams on active player synergy buses', () => {
+  it('renders animated packet pulse streams on active player synergy lanes', () => {
     const blueprint = createStaticCatalogRepository().listBlueprints()[0];
-    const edge = blueprint?.edges[0];
+    const slotIds = new Set(blueprint?.slots.map((s) => s.id));
+    const edge = blueprint?.edges.find((e) => slotIds.has(e.fromNodeId) && slotIds.has(e.toNodeId));
     if (blueprint === undefined || edge === undefined) return;
 
     const deployed = {
-      [edge.fromSlotId]: { slotId: edge.fromSlotId, owner: 'player' as const, serviceCardId: 'cloud-cdn', shieldCardId: null, shieldMatchedRecommendation: false },
-      [edge.toSlotId]: { slotId: edge.toSlotId, owner: 'player' as const, serviceCardId: 'cloud-storage', shieldCardId: null, shieldMatchedRecommendation: false },
+      [edge.fromNodeId]: { slotId: edge.fromNodeId, owner: 'player' as const, serviceCardId: 'cloud-cdn', shieldCardId: null, shieldMatchedRecommendation: false },
+      [edge.toNodeId]: { slotId: edge.toNodeId, owner: 'player' as const, serviceCardId: 'cloud-storage', shieldCardId: null, shieldMatchedRecommendation: false },
     };
-    const { container } = render(<TopologyEdgesSvg blueprint={blueprint} deployedSlots={deployed} maxRow={2} />);
+    const { container } = render(<DiagramFlowLayer diagram={resolveBlueprintDiagram(blueprint)} deployedSlots={deployed} />);
     expect(container.querySelector('.flow-pulse-stream')).not.toBeNull();
+    expect(container.querySelectorAll('.flow-edge.is-response').length).toBeGreaterThan(0);
   });
 });

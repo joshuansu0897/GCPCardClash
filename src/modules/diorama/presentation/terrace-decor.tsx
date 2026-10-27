@@ -30,7 +30,7 @@ export function TerraceDecor(props: {
 }
 
 function DecorModel(props: { readonly item: DecorPlacement; readonly foliage: string }): JSX.Element {
-  const ink = INK_HEX[props.item.ink];
+  const ink = props.item.ink !== null ? INK_HEX[props.item.ink] : '#94A3B8';
   switch (props.item.kind) {
     case 'tree':
       return <Tree foliage={props.foliage} />;

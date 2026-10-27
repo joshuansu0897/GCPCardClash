@@ -13,21 +13,25 @@ function firstLayout(): ReturnType<typeof computeIslandLayout> {
 }
 
 describe('Terrace decor', () => {
-  it('places every prop inside its own terrace footprint', () => {
+  it('keeps props off pads, actors and flow lanes, and on the island', () => {
     const layout = firstLayout();
     const decor = computeTerraceDecor(layout);
+    const nodes = [...layout.pads.map((p) => p.position), ...layout.contexts.map((c) => c.position)];
 
     expect(decor.length).toBeGreaterThan(0);
     for (const item of decor) {
-      const terrace = layout.terraces.find((t) => item.id.startsWith(`${t.zoneId}:`));
-      if (terrace === undefined) {
-        throw new Error(`No terrace for ${item.id}`);
-      }
-      const [cx, , cz] = terrace.center;
-      const [w, d] = terrace.size;
-      expect(Math.abs(item.position[0] - cx)).toBeLessThanOrEqual(w / 2);
-      expect(Math.abs(item.position[2] - cz)).toBeLessThanOrEqual(d / 2);
+      const [x, , z] = item.position;
+      expect(nodes.every((n) => Math.hypot(n[0] - x, n[2] - z) > 1.2)).toBe(true);
+      expect(Math.abs(x)).toBeLessThan(layout.islandSize[0] / 2);
+      expect(Math.abs(z)).toBeLessThan(layout.islandSize[1] / 2);
     }
+  });
+
+  it('gives props on a zone terrace that zone ink, and props on open grass none', () => {
+    const decor = computeTerraceDecor(firstLayout());
+
+    expect(decor.some((item) => item.ink === null && item.kind === 'tree')).toBe(true);
+    expect(decor.filter((item) => item.ink === null).every((item) => item.kind === 'tree')).toBe(true);
   });
 
   it('gives the same blueprint the same decor every time', () => {

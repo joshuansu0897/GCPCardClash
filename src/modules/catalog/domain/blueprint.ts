@@ -1,6 +1,7 @@
 /**
  * Pure domain reference architecture blueprint models for GCP Card Clash.
- * Models perimeter zones, topology slots, directional protocol flows, and study metadata.
+ * Models perimeter zones, topology slots, context actors, directional protocol flows laid out on a
+ * diagram grid, and study metadata.
  */
 
 import type { ShieldCapability, SubsystemInk } from './card';
@@ -8,10 +9,6 @@ import type { ShieldCapability, SubsystemInk } from './card';
 export type TrackId = 'foundations' | 'architect' | 'serverless-data' | 'vertex-ai';
 
 export type DifficultyLevel = 'Associate' | 'Professional' | 'Specialist';
-
-export type ZoneColumn = 1 | 2 | 3;
-
-export type SlotRow = 1 | 2 | 3;
 
 export interface TrackInfo {
   readonly id: TrackId;
@@ -21,17 +18,22 @@ export interface TrackInfo {
   readonly summary: string;
 }
 
+/** A position on a blueprint's diagram grid: columns run left (callers) to right (data), rows top to bottom. */
+export interface GridCell {
+  readonly col: number;
+  readonly row: number;
+}
+
 export interface PerimeterZone {
   readonly id: string;
   readonly label: string;
   readonly ink: SubsystemInk;
-  readonly column: ZoneColumn;
 }
 
 export interface ArchitectureSlot {
   readonly id: string;
   readonly zoneId: string;
-  readonly row: SlotRow;
+  readonly cell: GridCell;
   readonly title: string;
   readonly requirementClue: string;
   readonly acceptedServiceIds: readonly string[];
@@ -41,11 +43,24 @@ export interface ArchitectureSlot {
   readonly architecturalRationale: string;
 }
 
+export type ContextNodeKind = 'users' | 'browser' | 'devices' | 'on-prem' | 'partner' | 'service';
+
+/** A fixed, non-playable diagram node: an actor outside the cloud, or a pre-provisioned piece of context. */
+export interface ContextNode {
+  readonly id: string;
+  readonly kind: ContextNodeKind;
+  readonly label: string;
+  readonly cell: GridCell;
+  readonly insideCloud: boolean;
+}
+
+/** A flow between two nodes (slots or context nodes); `returnLabel` draws the paired response arrow. */
 export interface FlowEdge {
   readonly id: string;
-  readonly fromSlotId: string;
-  readonly toSlotId: string;
+  readonly fromNodeId: string;
+  readonly toNodeId: string;
   readonly protocolLabel: string;
+  readonly returnLabel?: string;
 }
 
 export interface ArchitectureBlueprint {
@@ -59,6 +74,7 @@ export interface ArchitectureBlueprint {
   readonly costFocus: string;
   readonly zones: readonly PerimeterZone[];
   readonly slots: readonly ArchitectureSlot[];
+  readonly contextNodes?: readonly ContextNode[];
   readonly edges: readonly FlowEdge[];
   readonly distractorServiceIds: readonly string[];
   readonly solutionSummary: string;

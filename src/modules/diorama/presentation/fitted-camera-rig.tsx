@@ -12,9 +12,9 @@ import { PerspectiveCamera, Vector3 } from 'three';
 import type { Vec3 } from '../domain/board-layout';
 import { type CameraFrame, type ViewInsets, computeCameraFit } from '../domain/camera-fit';
 
-/** Looking down at about 55°: high enough to read the whole board, still tilted enough to feel 3D. */
+/** Looking down at about 59°: high enough to read the whole diagram, still tilted enough to feel 3D. */
 const CAMERA_DIRECTION: Vec3 = (() => {
-  const v = new Vector3(0, 1, 0.7).normalize();
+  const v = new Vector3(0, 1, 0.6).normalize();
   return [v.x, v.y, v.z] as const;
 })();
 

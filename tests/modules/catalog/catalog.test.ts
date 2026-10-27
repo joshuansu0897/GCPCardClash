@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createStaticCatalogRepository,
   loadCurriculumOverview,
+  resolveBlueprintDiagram,
 } from '../../../src/modules/catalog';
 
 describe('Catalog bounded context', () => {
@@ -42,18 +43,18 @@ describe('Catalog bounded context', () => {
     const blueprints = repository.listBlueprints();
 
     for (const bp of blueprints) {
-      const zoneById = new Map(bp.zones.map((z) => [z.id, z]));
-      const slotIds = new Set<string>();
+      const zoneIds = new Set(bp.zones.map((z) => z.id));
+      const diagram = resolveBlueprintDiagram(bp);
       const occupiedCells = new Set<string>();
 
-      for (const slot of bp.slots) {
-        const zone = zoneById.get(slot.zoneId);
-        expect(zone).toBeDefined();
-
-        const coordKey = `${zone?.column}-${slot.row}`;
+      for (const node of diagram.nodes) {
+        const coordKey = `${node.cell.col}-${node.cell.row}`;
         expect(occupiedCells.has(coordKey)).toBe(false);
         occupiedCells.add(coordKey);
-        slotIds.add(slot.id);
+      }
+
+      for (const slot of bp.slots) {
+        expect(zoneIds.has(slot.zoneId)).toBe(true);
 
         for (const serviceId of slot.acceptedServiceIds) {
           const card = repository.getCardById(serviceId);
@@ -67,8 +68,8 @@ describe('Catalog bounded context', () => {
       }
 
       for (const edge of bp.edges) {
-        expect(slotIds.has(edge.fromSlotId)).toBe(true);
-        expect(slotIds.has(edge.toSlotId)).toBe(true);
+        expect(diagram.nodesById[edge.fromNodeId]).toBeDefined();
+        expect(diagram.nodesById[edge.toNodeId]).toBeDefined();
       }
     }
   });

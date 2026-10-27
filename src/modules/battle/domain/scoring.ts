@@ -21,7 +21,7 @@ export function countConnectedOwnedNeighbors(
   let count = 0;
 
   for (const edge of blueprint.edges) {
-    const neighborId = getOtherEndpoint(edge.fromSlotId, edge.toSlotId, slotId);
+    const neighborId = getOtherEndpoint(edge.fromNodeId, edge.toNodeId, slotId);
     if (neighborId !== null && slots[neighborId]?.owner === actor) {
       count += 1;
     }

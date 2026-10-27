@@ -1,19 +1,15 @@
 /**
- * Alabaster Architecture Drafting Sheet displaying perimeter zones, flow buses, and slots.
+ * Alabaster Architecture Drafting Sheet: the blueprint brief, the targeting banner, the
+ * architecture diagram (zones, actors, slots and flow lanes), and the flow schedule.
  */
 
 import type { JSX } from 'react';
 
-import { type ArenaMode, type MatchState, type SlotDeployment, quoteServiceCost, quoteShieldCost } from '../../battle';
-import type {
-  ArchitectureBlueprint,
-  ArchitectureSlot,
-  CatalogCard,
-  PerimeterZone,
-  ServiceCard,
-} from '../../catalog';
+import type { ArenaMode, MatchState, SlotDeployment } from '../../battle';
+import { type ArchitectureBlueprint, type CatalogCard, resolveBlueprintDiagram } from '../../catalog';
 import { TechnicalIcon } from '../../../shared/gcp-icons';
-import { ProtocolFlowSchedule, TopologyEdgesSvg } from './topology-edges-svg';
+import { DiagramStage } from './diagram-stage';
+import { ProtocolFlowSchedule } from './topology-edges-svg';
 
 export interface BlueprintCanvasProps {
   readonly blueprint: ArchitectureBlueprint;
@@ -30,8 +26,7 @@ export interface BlueprintCanvasProps {
 
 export function BlueprintCanvas(props: BlueprintCanvasProps): JSX.Element {
   const { blueprint } = props;
-  const sortedZones = [...blueprint.zones].sort((a, b) => a.column - b.column);
-  const maxRow: 2 | 3 = blueprint.slots.some((s) => s.row === 3) ? 3 : 2;
+  const diagram = resolveBlueprintDiagram(blueprint);
 
   return (
     <section className="drafting-sheet" aria-label="Architecture Blueprint Playboard">
@@ -40,35 +35,9 @@ export function BlueprintCanvas(props: BlueprintCanvasProps): JSX.Element {
       <ActiveTargetBanner selectedHandCard={props.selectedHandCard} mode={props.mode} />
 
       <div className="topology-board-frame">
-        <div className="topology-diagram-stage">
-          <TopologyEdgesSvg
-            blueprint={blueprint}
-            deployedSlots={props.deployedSlots}
-            maxRow={maxRow}
-          />
-
-          <div className={`perimeter-zones-grid rows-${maxRow}`}>
-            {sortedZones.map((zone) => (
-              <ZoneColumnFrame
-                key={zone.id}
-                zone={zone}
-                matchState={props.matchState}
-                slots={blueprint.slots.filter((s) => s.zoneId === zone.id)}
-                mode={props.mode}
-                playerEnergy={props.playerEnergy}
-                deployedSlots={props.deployedSlots}
-                cardsById={props.cardsById}
-                selectedHandCard={props.selectedHandCard}
-                inspectedSlotId={props.inspectedSlotId}
-                onInspectSlot={props.onInspectSlot}
-                onTargetSlot={props.onTargetSlot}
-              />
-            ))}
-          </div>
-        </div>
-
+        <DiagramStage board={props} diagram={diagram} />
         <ProtocolFlowSchedule
-          blueprint={blueprint}
+          diagram={diagram}
           deployedSlots={props.deployedSlots}
           onInspectSlot={props.onInspectSlot}
         />
@@ -130,197 +99,6 @@ function ActiveTargetBanner(props: {
           ? 'Guided Study Active: Optimal GCP services and shields are shown on every slot. Click any node to read exam trade-offs.'
           : 'Select a card in your Hand below to provision Energy, deploy a GCP Service, or harden an owned node.'}
       </span>
-    </div>
-  );
-}
-
-interface ZoneColumnFrameProps {
-  readonly zone: PerimeterZone;
-  readonly matchState: MatchState;
-  readonly slots: readonly ArchitectureSlot[];
-  readonly mode: ArenaMode;
-  readonly playerEnergy: number;
-  readonly deployedSlots: Readonly<Record<string, SlotDeployment>>;
-  readonly cardsById: Readonly<Record<string, CatalogCard>>;
-  readonly selectedHandCard: CatalogCard | undefined;
-  readonly inspectedSlotId: string | null;
-  readonly onInspectSlot: (slotId: string) => void;
-  readonly onTargetSlot: (slotId: string) => void;
-}
-
-function ZoneColumnFrame(props: ZoneColumnFrameProps): JSX.Element {
-  const { zone, slots } = props;
-
-  return (
-    <div className={`perimeter-zone zone-ink-${zone.ink}`}>
-      <div className="zone-header">
-        <TechnicalIcon name={zone.ink} size={14} />
-        <span className="zone-label">{zone.label}</span>
-      </div>
-
-      <div className="zone-slots-stack">
-        {slots.map((slot) => (
-          <SlotCutoutCard
-            key={slot.id}
-            slot={slot}
-            matchState={props.matchState}
-            zoneInk={zone.ink}
-            mode={props.mode}
-            playerEnergy={props.playerEnergy}
-            slotState={props.deployedSlots[slot.id]}
-            cardsById={props.cardsById}
-            selectedHandCard={props.selectedHandCard}
-            isInspected={props.inspectedSlotId === slot.id}
-            onInspectSlot={props.onInspectSlot}
-            onTargetSlot={props.onTargetSlot}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-interface SlotCutoutProps {
-  readonly slot: ArchitectureSlot;
-  readonly matchState: MatchState;
-  readonly zoneInk: PerimeterZone['ink'];
-  readonly mode: ArenaMode;
-  readonly playerEnergy: number;
-  readonly slotState: SlotDeployment | undefined;
-  readonly cardsById: Readonly<Record<string, CatalogCard>>;
-  readonly selectedHandCard: CatalogCard | undefined;
-  readonly isInspected: boolean;
-  readonly onInspectSlot: (slotId: string) => void;
-  readonly onTargetSlot: (slotId: string) => void;
-}
-
-function SlotCutoutCard(props: SlotCutoutProps): JSX.Element {
-  const { slot, mode, slotState, cardsById, selectedHandCard, isInspected } = props;
-  const deployedService = slotState?.serviceCardId ? cardsById[slotState.serviceCardId] : undefined;
-  const deployedShield = slotState?.shieldCardId ? cardsById[slotState.shieldCardId] : undefined;
-  const optimalService = slot.acceptedServiceIds[0] ? cardsById[slot.acceptedServiceIds[0]] : undefined;
-  const actionLabel = resolveSlotActionLabel(props.matchState, slotState, selectedHandCard);
-
-  const ownerClass = slotState?.owner ? `is-owned-${slotState.owner}` : 'is-open';
-  const inspectClass = isInspected ? 'is-inspected' : '';
-
-  return (
-    <article
-      className={`slot-cutout ${ownerClass} ${inspectClass}`}
-      style={{ gridRow: slot.row }}
-    >
-      <div className={`slot-ink-band ink-bg-${props.zoneInk}`} aria-hidden="true" />
-
-      <div className="slot-top-row">
-        <button
-          type="button"
-          className="slot-title-btn"
-          onClick={() => props.onInspectSlot(slot.id)}
-        >
-          {slot.title}
-        </button>
-        <SlotOwnerStamp slotState={slotState} />
-      </div>
-
-      {deployedService !== undefined ? (
-        <div className="slot-deployed-box">
-          <span className="service-code-chip">{deployedService.shortCode}</span>
-          <span className="deployed-service-name">{deployedService.title}</span>
-        </div>
-      ) : (
-        <p className="slot-clue">{slot.requirementClue}</p>
-      )}
-
-      <SlotFooterRow
-        mode={mode}
-        recommendedShieldTitle={cardsById[slot.recommendedShield]?.title ?? slot.recommendedShield}
-        slotState={slotState}
-        deployedShield={deployedShield}
-        optimalService={optimalService}
-        actionLabel={actionLabel}
-        onTarget={() => props.onTargetSlot(slot.id)}
-      />
-    </article>
-  );
-}
-
-function SlotOwnerStamp(props: { readonly slotState: SlotDeployment | undefined }): JSX.Element {
-  const owner = props.slotState?.owner;
-  if (owner === 'player') {
-    return <span className="owner-pill owner-player">YOU</span>;
-  }
-  if (owner === 'rival') {
-    return <span className="owner-pill owner-rival">RIVAL</span>;
-  }
-  return <span className="owner-pill owner-open">OPEN</span>;
-}
-
-function resolveSlotActionLabel(
-  state: MatchState,
-  slotState: SlotDeployment | undefined,
-  selectedCard: CatalogCard | undefined,
-): string | null {
-  if (selectedCard?.kind === 'service') {
-    return resolveServiceVerb(state, slotState, selectedCard);
-  }
-  if (selectedCard?.kind === 'shield' && slotState?.owner === 'player' && slotState.shieldCardId === null) {
-    return `Harden (${quoteShieldCost(state, selectedCard)}E)`;
-  }
-  return null;
-}
-
-function resolveServiceVerb(
-  state: MatchState,
-  slotState: SlotDeployment | undefined,
-  card: ServiceCard,
-): string | null {
-  const cost = quoteServiceCost(state, 'player', card, slotState);
-  if (cost === null) {
-    return null;
-  }
-  if (!slotState?.owner) {
-    return `Deploy (${cost}E)`;
-  }
-  return state.playerEnergy >= cost ? `Capture (${cost}E)` : `Need ${cost}E`;
-}
-
-function SlotFooterRow(props: {
-  readonly mode: ArenaMode;
-  readonly recommendedShieldTitle: string;
-  readonly slotState: SlotDeployment | undefined;
-  readonly deployedShield: CatalogCard | undefined;
-  readonly optimalService: CatalogCard | undefined;
-  readonly actionLabel: string | null;
-  readonly onTarget: () => void;
-}): JSX.Element {
-  const { mode, recommendedShieldTitle, slotState, deployedShield, optimalService, actionLabel, onTarget } = props;
-
-  return (
-    <div className="slot-footer-row">
-      {deployedShield !== undefined ? (
-        <span className="shield-status is-hardened">
-          <TechnicalIcon name="shield" size={13} />
-          <span>{deployedShield.shortCode} Hardened</span>
-        </span>
-      ) : slotState?.owner !== null && slotState?.owner !== undefined ? (
-        <span className="shield-status is-vulnerable">
-          <TechnicalIcon name="alert" size={13} />
-          <span>Unshielded</span>
-        </span>
-      ) : mode === 'study' && optimalService !== undefined ? (
-        <span className="study-answer-chip">
-          <TechnicalIcon name="check" size={13} />
-          <span>Fit: {optimalService.title}</span>
-        </span>
-      ) : (
-        <span className="shield-rec-hint">Shield: {recommendedShieldTitle}</span>
-      )}
-
-      {actionLabel !== null && (
-        <button type="button" className="slot-deploy-btn" onClick={onTarget}>
-          {actionLabel}
-        </button>
-      )}
     </div>
   );
 }
