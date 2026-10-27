@@ -126,6 +126,11 @@ export const FOUNDATIONS_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] 
       { id: 'e7', fromNodeId: 'egress-nat', toNodeId: 'payment-psp', protocolLabel: 'HTTPS out', returnLabel: 'Auth code' },
       { id: 'e8', fromNodeId: 'admins', toNodeId: 'web-vms', protocolLabel: 'IAP SSH' },
     ],
+    references: [
+      { title: 'Use IAP for TCP forwarding', url: 'https://docs.cloud.google.com/iap/docs/using-tcp-forwarding' },
+      { title: 'Cloud NAT overview', url: 'https://docs.cloud.google.com/nat/docs/overview' },
+      { title: 'Cloud CDN backend buckets', url: 'https://docs.cloud.google.com/cdn/docs/setting-up-cdn-with-bucket' },
+    ],
     distractorServiceIds: ['cloud-run', 'cloud-interconnect', 'memorystore-redis', 'cloud-spanner'],
     solutionSummary:
       'An External ALB with Cloud CDN is the only public entry: media comes from a Cloud Storage bucket at the edge, and pages from a private VM group. Cloud NAT gives the VMs a fixed way out to the payment provider, Cloud SQL HA replaces the MySQL VM, and IAP TCP forwarding replaces the bastion.',
@@ -273,6 +278,11 @@ export const FOUNDATIONS_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] 
       { id: 'e8', fromNodeId: 'standby-api', toNodeId: 'replica-db', protocolLabel: 'Promote & write' },
       { id: 'e9', fromNodeId: 'primary-db', toNodeId: 'dr-monitoring', protocolLabel: 'Lag metrics' },
       { id: 'e10', fromNodeId: 'replica-db', toNodeId: 'dr-monitoring', protocolLabel: 'Health' },
+    ],
+    references: [
+      { title: 'Disaster recovery planning guide', url: 'https://docs.cloud.google.com/architecture/dr-scenarios-planning-guide' },
+      { title: 'Promote replicas for regional migration or disaster recovery', url: 'https://docs.cloud.google.com/sql/docs/mysql/replication/cross-region-replicas' },
+      { title: 'Data availability and durability', url: 'https://docs.cloud.google.com/storage/docs/availability-durability' },
     ],
     distractorServiceIds: ['compute-engine-mig', 'gke-autopilot', 'bigquery-dw', 'memorystore-redis'],
     solutionSummary:

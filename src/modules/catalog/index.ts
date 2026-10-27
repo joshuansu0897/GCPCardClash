@@ -19,6 +19,7 @@ export type {
   BaseCard,
   CardKind,
   CatalogCard,
+  DocReference,
   EnergyCard,
   GcpCategory,
   ServiceCard,

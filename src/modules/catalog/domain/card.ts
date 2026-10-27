@@ -13,7 +13,7 @@ export type GcpCategory =
   | 'Networking & Edge'
   | 'Databases & Storage'
   | 'Messaging & Analytics'
-  | 'Vertex AI'
+  | 'Agent Platform'
   | 'Security & Governance';
 
 export type ShieldCapability =
@@ -22,6 +22,12 @@ export type ShieldCapability =
   | 'vpc-service-controls'
   | 'kms-secret-manager'
   | 'identity-aware-proxy';
+
+/** A page of official Google Cloud documentation that backs a card's or blueprint's claims. */
+export interface DocReference {
+  readonly title: string;
+  readonly url: string;
+}
 
 export interface BaseCard {
   readonly id: string;
@@ -33,6 +39,7 @@ export interface BaseCard {
   readonly whenToUse: string;
   readonly avoidWhen: string;
   readonly examTip: string;
+  readonly references: readonly DocReference[];
 }
 
 export interface EnergyCard extends BaseCard {

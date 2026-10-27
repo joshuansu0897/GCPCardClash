@@ -138,6 +138,11 @@ export const FOUNDATIONS_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e7', fromNodeId: 'order-events', toNodeId: 'receipt-worker', protocolLabel: 'Push sub' },
       { id: 'e8', fromNodeId: 'receipt-worker', toNodeId: 'orders-db', protocolLabel: 'Receipt sent' },
     ],
+    references: [
+      { title: 'Serverless network endpoint groups overview', url: 'https://docs.cloud.google.com/load-balancing/docs/negs/serverless-neg-concepts' },
+      { title: 'Cloud CDN backend buckets', url: 'https://docs.cloud.google.com/cdn/docs/setting-up-cdn-with-bucket' },
+      { title: 'About high availability (Cloud SQL)', url: 'https://docs.cloud.google.com/sql/docs/postgres/high-availability' },
+    ],
     distractorServiceIds: ['compute-engine-mig', 'cloud-nat', 'bigquery-dw', 'memorystore-redis'],
     solutionSummary:
       'Global External ALB + Cloud CDN absorb public traffic at Google edge PoPs, routing dynamic requests to Cloud Run, persisting relational orders in Cloud SQL HA and serving media from Cloud Storage. Pub/Sub fans each order out to a Cloud Run function that sends the receipt off the checkout path.',
@@ -260,6 +265,11 @@ export const FOUNDATIONS_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e5', fromNodeId: 'portal-app', toNodeId: 'ticket-docs', protocolLabel: 'Doc writes', returnLabel: 'Live snapshots' },
       { id: 'e6', fromNodeId: 'portal-app', toNodeId: 'attachment-store', protocolLabel: 'Signed URL' },
       { id: 'e7', fromNodeId: 'zt-frontdoor', toNodeId: 'access-audit', protocolLabel: 'IAP access logs' },
+    ],
+    references: [
+      { title: 'Identity-Aware Proxy overview', url: 'https://docs.cloud.google.com/iap/docs/concepts-overview' },
+      { title: 'Route logs to supported destinations', url: 'https://docs.cloud.google.com/logging/docs/export/configure_export_v2' },
+      { title: 'Firestore real-time updates', url: 'https://docs.cloud.google.com/firestore/native/docs/query-data/listen' },
     ],
     distractorServiceIds: ['cloud-cdn', 'apigee-api', 'cloud-bigtable', 'cloud-sql-ha'],
     solutionSummary:

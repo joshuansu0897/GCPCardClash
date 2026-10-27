@@ -196,7 +196,7 @@ export function resolveBuildingArchetype(card: CatalogCard): BuildingArchetype {
       return 'silo';
     case 'Networking & Edge':
       return 'tower';
-    case 'Vertex AI':
+    case 'Agent Platform':
       return 'crystal';
     case 'Security & Governance':
     case 'Provisioning':

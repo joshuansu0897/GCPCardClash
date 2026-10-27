@@ -19,6 +19,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Unstructured media, static assets, data lakes, Terraform state, backups, and WORM compliance archives.',
     avoidWhen: 'Low-latency mutable row-level OLTP transactions or POSIX block storage.',
     examTip: 'Enable Object Versioning, Autoclass or Lifecycle rules, Uniform Bucket-Level Access, and Retention Locks.',
+    references: [
+      { title: 'Cloud Storage overview', url: 'https://docs.cloud.google.com/storage/docs/introduction' },
+      { title: 'Cloud Storage SLA', url: 'https://cloud.google.com/storage/sla' },
+    ],
   },
   {
     id: 'cloud-sql-ha',
@@ -34,6 +38,11 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Standard regional relational OLTP workloads (< 64 TB) needing familiar SQL compatibility.',
     avoidWhen: 'Active-active multi-region writes or horizontal petabyte OLTP scale (choose Cloud Spanner).',
     examTip: 'Connect via Cloud SQL Auth Proxy and Private IP; read replicas handle read offload, not HA failover.',
+    references: [
+      { title: 'About high availability (Cloud SQL)', url: 'https://docs.cloud.google.com/sql/docs/postgres/high-availability' },
+      { title: 'Cloud SQL quotas and limits', url: 'https://docs.cloud.google.com/sql/docs/quotas' },
+      { title: 'Cloud SQL SLA', url: 'https://cloud.google.com/sql/sla' },
+    ],
   },
   {
     id: 'alloydb-postgres',
@@ -48,7 +57,11 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     summary: 'Google-engineered PostgreSQL-compatible database with disaggregated storage and built-in columnar engine.',
     whenToUse: 'Demanding enterprise PostgreSQL OLTP + hybrid HTAP analytics migrating off legacy commercial RDBMS.',
     avoidWhen: 'Lightweight dev/departmental apps where Cloud SQL is more cost-effective, or global multi-master writes.',
-    examTip: 'AlloyDB delivers 4x faster transactional throughput than standard PostgreSQL with a 99.99% SLA.',
+    examTip: 'AlloyDB is more than 4x faster for transactional workloads than self-managed PostgreSQL, with a 99.99% SLA.',
+    references: [
+      { title: 'AlloyDB overview', url: 'https://docs.cloud.google.com/alloydb/docs/overview' },
+      { title: 'AlloyDB for PostgreSQL', url: 'https://cloud.google.com/alloydb' },
+    ],
   },
   {
     id: 'cloud-spanner',
@@ -64,6 +77,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Mission-critical global financial ledgers, inventory cores, and multi-region active-active relational apps.',
     avoidWhen: 'Single-region moderate-scale CRUD apps where Cloud SQL satisfies SLA at lower baseline cost.',
     examTip: 'Avoid monotonically increasing integer primary keys in Spanner—use UUIDv4 or bit-reversed sequences.',
+    references: [
+      { title: 'Spanner', url: 'https://cloud.google.com/spanner' },
+      { title: 'Spanner schema design best practices', url: 'https://docs.cloud.google.com/spanner/docs/schema-design' },
+    ],
   },
   {
     id: 'firestore-db',
@@ -79,6 +96,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Mobile/web state synchronization, user profiles, product catalogs, and serverless event state.',
     avoidWhen: 'Ultra-high-velocity wide-column time-series telemetry (> 100k writes/sec—use Cloud Bigtable).',
     examTip: 'Firestore scales seamlessly to zero cost when idle and offers 99.999% multi-region availability.',
+    references: [
+      { title: 'Firestore', url: 'https://cloud.google.com/products/firestore' },
+      { title: 'Firestore quotas and limits', url: 'https://docs.cloud.google.com/firestore/quotas' },
+    ],
   },
   {
     id: 'cloud-bigtable',
@@ -89,11 +110,16 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     ink: 'data',
     energyCost: 3,
     basePoints: 105,
-    slaTier: '99.999% Multi-Cluster NoSQL',
+    slaTier: '99.999% Multi-Cluster (3+ Regions)',
     summary: 'Petabyte-scale wide-column HBase-compatible NoSQL store delivering single-digit millisecond reads and writes.',
     whenToUse: 'High-throughput IoT sensor streams, ad-tech clickstreams, financial tick series, and ML feature serving.',
-    avoidWhen: 'Multi-row SQL joins, small datasets (< 1 TB), or interactive ad-hoc SQL analytics (use BigQuery).',
+    avoidWhen: 'Multi-row transactions, relational joins, or interactive ad-hoc SQL analytics (use BigQuery).',
     examTip: 'Design row keys with reverse-domain or salted prefixes to prevent tablet hotspotting on timestamps.',
+    references: [
+      { title: 'Bigtable overview', url: 'https://docs.cloud.google.com/bigtable/docs/overview' },
+      { title: 'Bigtable', url: 'https://cloud.google.com/bigtable' },
+      { title: 'Bigtable SLA', url: 'https://cloud.google.com/bigtable/sla' },
+    ],
   },
   {
     id: 'memorystore-redis',
@@ -109,6 +135,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Session stores, hot database read caching, rate-limit counters, and gaming leaderboards.',
     avoidWhen: 'Durable system-of-record persistence or cross-year archival compliance.',
     examTip: 'Connect serverless Cloud Run services to Memorystore using Direct VPC Egress.',
+    references: [
+      { title: 'Memorystore for Redis overview', url: 'https://docs.cloud.google.com/memorystore/docs/redis/memorystore-for-redis-overview' },
+      { title: 'Connect to Redis from a Cloud Run service', url: 'https://docs.cloud.google.com/memorystore/docs/redis/connect-redis-instance-cloud-run' },
+    ],
   },
   {
     id: 'pubsub-bus',
@@ -124,6 +154,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Shock-absorbing bursty telemetry ingestion, event fan-out, and asynchronous microservice decoupling.',
     avoidWhen: 'Synchronous request-reply RPCs or multi-step conditional branching sagas (use Workflows).',
     examTip: 'Configure Dead-Letter Topics and Ordering Keys when downstream consumers require poison-pill isolation.',
+    references: [
+      { title: 'What is Pub/Sub?', url: 'https://docs.cloud.google.com/pubsub/docs/overview' },
+      { title: 'Pub/Sub dead-letter topics', url: 'https://docs.cloud.google.com/pubsub/docs/dead-letter-topics' },
+    ],
   },
   {
     id: 'dataflow-beam',
@@ -139,6 +173,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Real-time windowed ETL, late-arriving event watermarks, PII redaction pipelines, and streaming enrichment.',
     avoidWhen: 'Existing Hadoop/Spark-only codebases you cannot port (use Dataproc) or pure SQL ELT inside BigQuery.',
     examTip: 'Dataflow Streaming Engine + Prime autoscale worker compute and shuffle memory independently.',
+    references: [
+      { title: 'Dataflow overview', url: 'https://docs.cloud.google.com/dataflow/docs/overview' },
+      { title: 'Dataflow streaming pipelines', url: 'https://docs.cloud.google.com/dataflow/docs/concepts/streaming-pipelines' },
+    ],
   },
   {
     id: 'bigquery-dw',
@@ -154,6 +192,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Enterprise OLAP analytics, streaming log/telemetry SQL analysis, and petabyte reporting.',
     avoidWhen: 'High-frequency single-row OLTP point updates or sub-10ms key-value lookups.',
     examTip: 'Partition tables by ingestion/event date and cluster on high-cardinality filter columns to cut query cost.',
+    references: [
+      { title: 'BigQuery overview', url: 'https://docs.cloud.google.com/bigquery/docs/introduction' },
+      { title: 'Introduction to partitioned tables', url: 'https://docs.cloud.google.com/bigquery/docs/partitioned-tables' },
+    ],
   },
   {
     id: 'workflows-eventarc',
@@ -164,11 +206,16 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     ink: 'compute',
     energyCost: 2,
     basePoints: 85,
-    slaTier: '99.95% Stateful Step Orchestration',
+    slaTier: '99.9% Stateful Step Orchestration',
     summary: 'Serverless CloudEvents router (Eventarc) paired with stateful HTTP/API step orchestration (Workflows).',
     whenToUse: 'Order fulfillment sagas, retries, human-in-the-loop callbacks, and multi-service GenAI pipelines.',
     avoidWhen: 'Sub-millisecond high-volume data-plane packet streaming (use Pub/Sub + Dataflow).',
     examTip: 'Use Workflows for orchestration (central controller) and Pub/Sub/Eventarc for choreography (decoupled events).',
+    references: [
+      { title: 'Workflows overview', url: 'https://docs.cloud.google.com/workflows/docs/overview' },
+      { title: 'Eventarc overview', url: 'https://docs.cloud.google.com/eventarc/docs/overview' },
+      { title: 'Workflows SLA', url: 'https://cloud.google.com/workflows/sla' },
+    ],
   },
   {
     id: 'artifact-registry',
@@ -184,6 +231,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Storing signed build outputs that GKE, Cloud Run and pipelines pull from inside the VPC perimeter.',
     avoidWhen: 'General files, media or backups (use Cloud Storage); it stores versioned build artifacts only.',
     examTip: 'Pair Artifact Registry scanning with Binary Authorization so only attested images can deploy.',
+    references: [
+      { title: 'Artifact Registry overview', url: 'https://docs.cloud.google.com/artifact-registry/docs/overview' },
+      { title: 'Binary Authorization overview', url: 'https://docs.cloud.google.com/binary-authorization/docs/overview' },
+    ],
   },
   {
     id: 'cloud-monitoring',
@@ -199,6 +250,10 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Defining SLOs, alerting on error-budget burn, and keeping searchable logs for incident response.',
     avoidWhen: 'Business analytics across months of sales data (sink the logs to BigQuery for that).',
     examTip: 'Alert on SLO burn rate rather than raw CPU; the exam favours symptom-based, user-facing alerting.',
+    references: [
+      { title: 'Cloud Monitoring overview', url: 'https://docs.cloud.google.com/monitoring/docs/monitoring-overview' },
+      { title: 'Alerting on your burn rate', url: 'https://docs.cloud.google.com/stackdriver/docs/solutions/slo-monitoring/alerting-on-budget-burn-rate' },
+    ],
   },
   {
     id: 'datastream-cdc',
@@ -210,25 +265,32 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     energyCost: 2,
     basePoints: 85,
     slaTier: 'Serverless Change Data Capture',
-    summary: 'Serverless change data capture that streams inserts, updates and deletes from MySQL, PostgreSQL and Oracle.',
+    summary: 'Serverless change data capture that streams inserts, updates and deletes from MySQL, PostgreSQL, Oracle, SQL Server, MongoDB and Spanner.',
     whenToUse: 'Replicating an operational database into BigQuery or Cloud Storage in near real time without dual writes.',
     avoidWhen: 'Application events that are not database rows (publish them to Pub/Sub) or one-off bulk migrations (use DMS).',
     examTip: 'Datastream reads the database log (binlog/WAL), so the source app needs no code changes.',
+    references: [
+      { title: 'Datastream overview', url: 'https://docs.cloud.google.com/datastream/docs/overview' },
+      { title: 'Datastream sources', url: 'https://docs.cloud.google.com/datastream/docs/sources' },
+    ],
   },
   {
     id: 'dataproc-spark',
     kind: 'service',
-    title: 'Dataproc Serverless',
+    title: 'Managed Spark (Dataproc)',
     shortCode: 'DPR',
     category: 'Messaging & Analytics',
     ink: 'data',
     energyCost: 2,
     basePoints: 90,
     slaTier: 'Serverless Spark Batches',
-    summary: 'Managed Apache Spark and Hadoop, including serverless Spark batches with no cluster to size.',
+    summary: 'Managed Service for Apache Spark (formerly Dataproc), including serverless Spark batches with no cluster to size.',
     whenToUse: 'Lifting existing Spark or Hadoop jobs and notebooks to Google Cloud with minimal rewrites.',
     avoidWhen: 'Greenfield streaming pipelines (Dataflow) or plain SQL transforms that BigQuery runs directly.',
     examTip: 'Choose Dataproc to reuse existing Spark code; choose Dataflow for new unified batch + streaming pipelines.',
+    references: [
+      { title: 'Managed Service for Apache Spark serverless overview', url: 'https://docs.cloud.google.com/managed-spark/docs/serverless-overview' },
+    ],
   },
   {
     id: 'looker-bi',
@@ -244,5 +306,8 @@ export const DATA_AND_ANALYTICS_CARDS: readonly CatalogCard[] = [
     whenToUse: 'One trusted definition of every metric, served as dashboards and embedded reports to many teams.',
     avoidWhen: 'Storing or transforming the data itself; Looker queries the warehouse, it is not one.',
     examTip: 'LookML centralises metric definitions so every dashboard computes revenue the same way.',
+    references: [
+      { title: 'Looker', url: 'https://docs.cloud.google.com/looker/docs/intro' },
+    ],
   },
 ];

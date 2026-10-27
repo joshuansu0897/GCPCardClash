@@ -69,7 +69,7 @@ export const SERVERLESS_DATA_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprin
           'bigquery-dw': 'Translating 200 Spark jobs to SQL is a rewrite, not a migration.',
         },
         defaultAntiPatternReason: 'Existing Spark code runs as-is on Dataproc.',
-        architecturalRationale: 'Dataproc Serverless runs Spark batches with no cluster to size or keep running.',
+        architecturalRationale: 'Managed Spark (Dataproc) serverless runs Spark batches with no cluster to size or keep running.',
       },
       {
         id: 'click-pipeline',
@@ -141,9 +141,15 @@ export const SERVERLESS_DATA_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprin
       { id: 'e8', fromNodeId: 'semantic-bi', toNodeId: 'warehouse', protocolLabel: 'Pushdown SQL', returnLabel: 'Rows' },
       { id: 'e9', fromNodeId: 'analysts', toNodeId: 'semantic-bi', protocolLabel: 'Explore', returnLabel: 'Dashboards' },
     ],
+    references: [
+      { title: 'Datastream sources', url: 'https://docs.cloud.google.com/datastream/docs/sources' },
+      { title: 'Introduction to BigLake tables', url: 'https://docs.cloud.google.com/bigquery/docs/biglake-intro' },
+      { title: 'Managed Service for Apache Spark serverless overview', url: 'https://docs.cloud.google.com/managed-spark/docs/serverless-overview' },
+      { title: 'Looker', url: 'https://docs.cloud.google.com/looker/docs/intro' },
+    ],
     distractorServiceIds: ['cloud-sql-ha', 'cloud-bigtable', 'cloud-run-functions', 'alloydb-postgres'],
     solutionSummary:
-      'Datastream replicates the store database into BigQuery, and Pub/Sub plus Dataflow turn browser clicks into sessions. Existing Spark jobs run on Dataproc Serverless over a Parquet lake that BigQuery reads through BigLake, and Looker gives analysts one governed definition of every metric.',
+      'Datastream replicates the store database into BigQuery, and Pub/Sub plus Dataflow turn browser clicks into sessions. Existing Spark jobs run on serverless Managed Spark (Dataproc) over a Parquet lake that BigQuery reads through BigLake, and Looker gives analysts one governed definition of every metric.',
   },
   {
     id: 'arc-304-supplier-sync',
@@ -205,7 +211,7 @@ export const SERVERLESS_DATA_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprin
         recommendedShield: 'kms-secret-manager',
         antiPatternHints: {
           'pubsub-bus': 'Push subscriptions deliver as fast as possible; the publisher cannot set a hard rate limit.',
-          'cloud-run-functions': 'A loop in one function would time out long before 200,000 calls finish.',
+          'cloud-run-functions': '200,000 calls at 50 a second take over an hour, longer than one function request may run (60 minutes).',
         },
         defaultAntiPatternReason: 'Rate-limited, retried delivery to one HTTP target is Cloud Tasks.',
         architecturalRationale: 'A queue capped at 50 dispatches a second protects the CRM and retries 429s with backoff.',
@@ -220,7 +226,7 @@ export const SERVERLESS_DATA_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprin
         recommendedShield: 'iam-least-privilege',
         antiPatternHints: {
           'compute-engine-mig': 'Idle VMs wait all day for a nightly batch.',
-          'cloud-run-functions': 'A single function invocation is too short for an hour of parsing.',
+          'cloud-run-functions': 'One function request is capped at 60 minutes and cannot split a huge file across parallel tasks.',
         },
         defaultAntiPatternReason: 'Parallel, long-running container batch work fits Cloud Run jobs.',
         architecturalRationale: 'Cloud Run jobs fan the file out across tasks and stop when the work is done.',
@@ -263,6 +269,11 @@ export const SERVERLESS_DATA_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprin
       { id: 'e6', fromNodeId: 'etl-orchestrator', toNodeId: 'sync-queue', protocolLabel: 'Enqueue prices' },
       { id: 'e7', fromNodeId: 'sync-queue', toNodeId: 'partner-crm', protocolLabel: '50 req/s', returnLabel: '200 OK' },
       { id: 'e8', fromNodeId: 'merchandisers', toNodeId: 'job-status', protocolLabel: 'Listen', returnLabel: 'Live status' },
+    ],
+    references: [
+      { title: 'Choose Cloud Tasks or Pub/Sub', url: 'https://docs.cloud.google.com/tasks/docs/comp-pub-sub' },
+      { title: 'Set task timeout for jobs', url: 'https://docs.cloud.google.com/run/docs/configuring/task-timeout' },
+      { title: 'Configure request timeout for services', url: 'https://docs.cloud.google.com/run/docs/configuring/request-timeout' },
     ],
     distractorServiceIds: ['pubsub-bus', 'compute-engine-mig', 'cloud-run-functions', 'cloud-sql-ha'],
     solutionSummary:

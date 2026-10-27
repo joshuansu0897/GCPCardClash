@@ -1,5 +1,5 @@
 /**
- * Reference Architecture Blueprints for Track 4 (Vertex AI & Enterprise GenAI).
+ * Reference Architecture Blueprints for Track 4 (Agent Platform & Enterprise GenAI).
  */
 
 import type { ArchitectureBlueprint } from '../../domain/blueprint';
@@ -17,7 +17,7 @@ export const VERTEX_AI_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
     costFocus: 'Retrieve top-k chunks via ANN index before invoking Gemini tokens.',
     zones: [
       { id: 'app', label: 'Zero-Trust App Layer', ink: 'compute' },
-      { id: 'ai', label: 'Vertex AI Reasoning & Recall', ink: 'ai' },
+      { id: 'ai', label: 'Agent Platform Reasoning & Recall', ink: 'ai' },
       { id: 'indexing', label: 'Indexing Pipeline', ink: 'compute' },
       { id: 'corpus', label: 'Corpus & Eval Perimeter', ink: 'data' },
     ],
@@ -46,10 +46,10 @@ export const VERTEX_AI_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
         acceptedServiceIds: ['vertex-gemini'],
         recommendedShield: 'vpc-service-controls',
         antiPatternHints: {
-          'document-ai': 'Document AI extracts fields/layout from files; conversational RAG synthesis requires Vertex AI Gemini.',
+          'document-ai': 'Document AI extracts fields/layout from files; conversational RAG synthesis requires Gemini.',
         },
-        defaultAntiPatternReason: 'Enterprise multimodal grounded answer synthesis requires a Vertex AI Gemini Endpoint.',
-        architecturalRationale: 'Vertex AI Gemini keeps prompts inside your VPC Service Controls perimeter and never trains on customer data.',
+        defaultAntiPatternReason: 'Enterprise multimodal grounded answer synthesis requires Gemini on Agent Platform.',
+        architecturalRationale: 'Gemini on Agent Platform keeps prompts inside your VPC Service Controls perimeter and never trains on customer data.',
       },
       {
         id: 'ann-index',
@@ -63,8 +63,8 @@ export const VERTEX_AI_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
           'cloud-storage': 'Scanning raw files in Cloud Storage on every prompt cannot perform sub-10ms vector ANN retrieval.',
           'pubsub-bus': 'Pub/Sub is a message bus, not a nearest-neighbor vector index.',
         },
-        defaultAntiPatternReason: 'Ten-millisecond semantic ANN retrieval across tens of millions of chunks requires Vertex AI Vector Search.',
-        architecturalRationale: 'Vertex AI Vector Search (ScaNN) combines semantic similarity with department ACL token restricts.',
+        defaultAntiPatternReason: 'Ten-millisecond semantic ANN retrieval across tens of millions of chunks requires Vector Search.',
+        architecturalRationale: 'Vector Search (ScaNN) combines semantic similarity with department ACL token restricts.',
       },
       {
         id: 'embed-worker',
@@ -107,7 +107,7 @@ export const VERTEX_AI_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
           'cloud-nat': 'Cloud NAT is a network egress component, not an evaluation warehouse.',
         },
         defaultAntiPatternReason: 'Large-scale GenAI telemetry, token cost dashboards, and evaluation datasets belong in BigQuery.',
-        architecturalRationale: 'Vertex AI request-response logging streams directly into BigQuery for continuous RAG faithfulness monitoring.',
+        architecturalRationale: 'Agent Platform request-response logging streams directly into BigQuery for continuous RAG faithfulness monitoring.',
       },
     ],
     edges: [
@@ -118,9 +118,14 @@ export const VERTEX_AI_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e5', fromNodeId: 'embed-worker', toNodeId: 'ann-index', protocolLabel: 'Upsert' },
       { id: 'e6', fromNodeId: 'llm-endpoint', toNodeId: 'eval-telemetry', protocolLabel: 'Eval & token logs' },
     ],
+    references: [
+      { title: 'RAG infrastructure for generative AI using Agent Platform and AlloyDB', url: 'https://docs.cloud.google.com/architecture/rag-capable-gen-ai-app-using-vertex-ai' },
+      { title: 'Vector Search overview', url: 'https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/vector-search/overview' },
+      { title: 'Overview of VPC Service Controls', url: 'https://docs.cloud.google.com/vpc-service-controls/docs/overview' },
+    ],
     distractorServiceIds: ['document-ai', 'compute-engine-mig', 'pubsub-bus', 'memorystore-redis'],
     solutionSummary:
-      'IAP-gated Cloud Run retrieves ACL-filtered chunks from Vertex AI Vector Search and synthesizes cited answers via Vertex AI Gemini inside a VPC-SC perimeter, logging evaluations to BigQuery. A Cloud Run function re-embeds each manual that lands in the CMEK Cloud Storage corpus.',
+      'IAP-gated Cloud Run retrieves ACL-filtered chunks from Vector Search and synthesizes cited answers via Gemini on Agent Platform inside a VPC-SC perimeter, logging evaluations to BigQuery. A Cloud Run function re-embeds each manual that lands in the CMEK Cloud Storage corpus.',
   },
   {
     id: 'arc-402-doc-intake',
@@ -197,8 +202,8 @@ export const VERTEX_AI_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
         antiPatternHints: {
           'cloud-bigtable': 'Bigtable is a NoSQL store, not a reasoning foundation model.',
         },
-        defaultAntiPatternReason: 'Complex policy reasoning with controlled JSON schema output requires Vertex AI Gemini.',
-        architecturalRationale: 'Vertex AI Gemini Controlled Generation guarantees valid JSON adjudication outputs for downstream SQL.',
+        defaultAntiPatternReason: 'Complex policy reasoning with controlled JSON schema output requires Gemini.',
+        architecturalRationale: 'Gemini Controlled Generation guarantees valid JSON adjudication outputs for downstream SQL.',
       },
       {
         id: 'claims-dw',
@@ -239,8 +244,13 @@ export const VERTEX_AI_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e6', fromNodeId: 'intake-workflow', toNodeId: 'review-queue', protocolLabel: 'Review task', returnLabel: 'Verdict' },
       { id: 'e7', fromNodeId: 'adjusters', toNodeId: 'review-queue', protocolLabel: 'Approve', returnLabel: 'Task feed' },
     ],
+    references: [
+      { title: 'Document AI overview', url: 'https://docs.cloud.google.com/document-ai/docs/overview' },
+      { title: 'Process documents with Gemini layout parser', url: 'https://docs.cloud.google.com/document-ai/docs/layout-parse-chunk' },
+      { title: 'Workflows overview', url: 'https://docs.cloud.google.com/workflows/docs/overview' },
+    ],
     distractorServiceIds: ['cloud-sql-ha', 'vertex-vector-search', 'dataflow-beam', 'memorystore-redis'],
     solutionSummary:
-      'Signed uploads to CMEK Cloud Storage fire Eventarc into Cloud Workflows, chaining Document AI layout OCR with Vertex AI Gemini policy reasoning before landing governed records in BigQuery. Low-confidence claims pause in a Firestore review queue until an adjuster decides.',
+      'Signed uploads to CMEK Cloud Storage fire Eventarc into Cloud Workflows, chaining Document AI layout OCR with Gemini policy reasoning before landing governed records in BigQuery. Low-confidence claims pause in a Firestore review queue until an adjuster decides.',
   },
 ];

@@ -19,6 +19,9 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Rapid exploratory prototyping, visual log inspection, and live incident triage.',
     avoidWhen: 'Repeatable multi-environment production rollouts without Infrastructure as Code.',
     examTip: 'Pair interactive discovery with Terraform export so production changes remain auditable.',
+    references: [
+      { title: 'Google Cloud console', url: 'https://cloud.google.com/cloud-console' },
+    ],
   },
   {
     id: 'gcloud-cli',
@@ -34,6 +37,9 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Ad-hoc operational scripts, CI runner tasks, and Cloud Shell automation.',
     avoidWhen: 'Managing drift across dozens of stateful resources without declarative state.',
     examTip: 'Use Workload Identity Federation or service account impersonation instead of JSON key files.',
+    references: [
+      { title: 'gcloud CLI overview', url: 'https://docs.cloud.google.com/sdk/gcloud' },
+    ],
   },
   {
     id: 'terraform-gcp',
@@ -49,6 +55,9 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Provisioning reproducible VPCs, GKE clusters, IAM policies, and multi-region topologies.',
     avoidWhen: 'Never—declarative IaC is the Google Cloud recommended baseline for production infrastructure.',
     examTip: 'Store Terraform remote state in a versioned Cloud Storage bucket with CMEK and state locking.',
+    references: [
+      { title: 'Terraform on Google Cloud', url: 'https://docs.cloud.google.com/docs/terraform' },
+    ],
   },
   {
     id: 'infra-manager-build',
@@ -64,6 +73,10 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'GitOps delivery pipelines enforcing policy checks before deploying infrastructure or containers.',
     avoidWhen: 'Running untrusted builds with overly broad default Compute Engine service account roles.',
     examTip: 'Infrastructure Manager replaces legacy Deployment Manager with native Terraform actuation on GCP.',
+    references: [
+      { title: 'Infrastructure Manager overview', url: 'https://docs.cloud.google.com/infrastructure-manager/docs/overview' },
+      { title: 'Deployment Manager documentation (end of support notice)', url: 'https://docs.cloud.google.com/deployment-manager/docs' },
+    ],
   },
   {
     id: 'compute-engine-mig',
@@ -79,6 +92,10 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Custom OS kernels, legacy stateful/licensing binaries, or GPU VM fleets not yet containerized.',
     avoidWhen: 'Stateless HTTP microservices where Cloud Run eliminates OS patching and idle VM cost.',
     examTip: 'Attach a health check for autohealing (distinct from load balancer firewall health checks).',
+    references: [
+      { title: 'Instance groups', url: 'https://docs.cloud.google.com/compute/docs/instance-groups' },
+      { title: 'Compute Engine SLA', url: 'https://cloud.google.com/compute/sla' },
+    ],
   },
   {
     id: 'gke-autopilot',
@@ -89,11 +106,15 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     ink: 'compute',
     energyCost: 3,
     basePoints: 110,
-    slaTier: '99.95% Control Plane + Pod SLA',
+    slaTier: '99.95% Control Plane · 99.9% Pods',
     summary: 'Fully managed Kubernetes where Google provisions nodes, hardens security, and bills per pod request.',
     whenToUse: 'Complex polyglot microservices meshes, custom Kubernetes operators, or multi-cluster fleets.',
     avoidWhen: 'Simple single-container HTTP APIs or webhook workers better served by serverless Cloud Run.',
     examTip: 'Use GKE Workload Identity to bind Kubernetes service accounts directly to IAM service accounts.',
+    references: [
+      { title: 'GKE Autopilot overview', url: 'https://docs.cloud.google.com/kubernetes-engine/docs/concepts/autopilot-overview' },
+      { title: 'GKE SLA', url: 'https://cloud.google.com/kubernetes-engine/sla' },
+    ],
   },
   {
     id: 'cloud-run',
@@ -109,6 +130,10 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Stateless web frontends, REST/gRPC APIs, internal portals, and containerized batch jobs.',
     avoidWhen: 'Workloads requiring persistent local disk or raw layer-4 UDP socket listeners.',
     examTip: 'Set min-instances >= 1 on latency-sensitive APIs to eliminate cold starts while staying serverless.',
+    references: [
+      { title: 'What is Cloud Run', url: 'https://docs.cloud.google.com/run/docs/overview/what-is-cloud-run' },
+      { title: 'Cloud Run SLA', url: 'https://cloud.google.com/run/sla' },
+    ],
   },
   {
     id: 'cloud-run-functions',
@@ -124,6 +149,10 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Lightweight event glue, webhook transforms, and asynchronous notifications.',
     avoidWhen: 'Multi-route APIs or long-running multi-step sagas (prefer Cloud Run or Workflows).',
     examTip: '2nd gen Cloud Run Functions run on Cloud Run infrastructure, supporting concurrency and longer timeouts.',
+    references: [
+      { title: 'Compare Cloud Run functions', url: 'https://docs.cloud.google.com/run/docs/functions/comparison' },
+      { title: 'Configure request timeout for services', url: 'https://docs.cloud.google.com/run/docs/configuring/request-timeout' },
+    ],
   },
   {
     id: 'global-ext-alb',
@@ -139,6 +168,9 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Public HTTPS/gRPC ingress needing URL maps, TLS offload, Cloud CDN, or Cloud Armor WAF.',
     avoidWhen: 'Non-HTTP proprietary TCP/UDP protocols (use Proxy Network LB or Passthrough Network LB).',
     examTip: 'Premium Network Tier is required for a single global Anycast IP with multi-region backend failover.',
+    references: [
+      { title: 'External Application Load Balancer overview', url: 'https://docs.cloud.google.com/load-balancing/docs/https' },
+    ],
   },
   {
     id: 'cloud-cdn',
@@ -154,6 +186,9 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Accelerating static web bundles, media assets, and cacheable public GET responses at Google edge PoPs.',
     avoidWhen: 'Per-user uncacheable transactional mutations or private VPC-only RPC traffic.',
     examTip: 'Use Signed URLs or Signed Cookies when caching restricted premium media at the edge.',
+    references: [
+      { title: 'Cloud CDN overview', url: 'https://docs.cloud.google.com/cdn/docs/overview' },
+    ],
   },
   {
     id: 'apigee-api',
@@ -169,6 +204,10 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'External partner/public APIs needing developer portals, rate plans, and protocol mediation.',
     avoidWhen: 'Simple internal microservice-to-microservice routing where Internal ALB or Service Mesh suffices.',
     examTip: 'Exam keywords "partner monetization", "developer portal", or "API quota tiers" point directly to Apigee.',
+    references: [
+      { title: 'What is Apigee?', url: 'https://docs.cloud.google.com/apigee/docs/api-platform/get-started/what-apigee' },
+      { title: 'Apigee SLA', url: 'https://cloud.google.com/apigee/sla' },
+    ],
   },
   {
     id: 'cloud-nat',
@@ -184,6 +223,9 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Allowing private instances with no external IPs to pull OS patches or call third-party HTTPS APIs.',
     avoidWhen: 'Accepting unsolicited inbound internet traffic (use a Load Balancer or IAP instead).',
     examTip: 'Enable Private Google Access on the subnet so Google API traffic stays internal without traversing NAT.',
+    references: [
+      { title: 'Cloud NAT overview', url: 'https://docs.cloud.google.com/nat/docs/overview' },
+    ],
   },
   {
     id: 'cloud-interconnect',
@@ -195,10 +237,14 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     energyCost: 3,
     basePoints: 105,
     slaTier: '99.99% Redundant Colocation',
-    summary: 'Physical 10Gbps or 100Gbps private fiber circuits linking on-premises data centers to Google Cloud.',
+    summary: 'Physical 10, 100 or 400 Gbps private fiber circuits linking on-premises data centers to Google Cloud.',
     whenToUse: 'High-throughput, predictable low-latency hybrid connectivity exceeding HA VPN bandwidth limits.',
     avoidWhen: 'Low-bandwidth branch offices (< 3 Gbps) or urgent links needed today (use HA Cloud VPN).',
     examTip: 'Achieving the 99.99% SLA requires 4 VLAN attachments across 2 Edge Availability Domains in 2 metro areas.',
+    references: [
+      { title: 'Dedicated Interconnect overview', url: 'https://docs.cloud.google.com/network-connectivity/docs/interconnect/concepts/dedicated-overview' },
+      { title: 'Establish 99.99% availability for Dedicated Interconnect', url: 'https://docs.cloud.google.com/network-connectivity/docs/interconnect/tutorials/dedicated-creating-9999-availability' },
+    ],
   },
   {
     id: 'cloud-deploy',
@@ -209,11 +255,15 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     ink: 'compute',
     energyCost: 2,
     basePoints: 85,
-    slaTier: 'Managed CI/CD Delivery Pipelines',
-    summary: 'Serverless container builds plus managed progressive delivery (canary, approvals, rollback) to GKE and Cloud Run.',
-    whenToUse: 'Building images on every commit and promoting releases through dev, staging and prod targets.',
+    slaTier: 'Managed Continuous Delivery',
+    summary: 'Managed progressive delivery (canary, approvals, rollback) of releases to GKE and Cloud Run; pairs with Cloud Build for builds.',
+    whenToUse: 'Promoting each built release through dev, staging and prod targets with gates and safe rollouts.',
     avoidWhen: 'Running the application itself or long-lived services; it ships workloads, it does not host them.',
     examTip: 'Cloud Deploy canary strategies and approval gates give auditable, one-click rollbacks across environments.',
+    references: [
+      { title: 'Overview of Cloud Deploy', url: 'https://docs.cloud.google.com/deploy/docs/overview' },
+      { title: 'Use a canary deployment strategy', url: 'https://docs.cloud.google.com/deploy/docs/deployment-strategies/canary' },
+    ],
   },
   {
     id: 'cloud-tasks',
@@ -229,5 +279,8 @@ export const COMPUTE_AND_EDGE_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Throttling calls to a fragile downstream API, or deferring one piece of work to run later.',
     avoidWhen: 'Fanning one event out to many subscribers (use Pub/Sub) or multi-step orchestration (use Workflows).',
     examTip: 'Cloud Tasks gives the publisher explicit control of delivery rate; Pub/Sub decouples publishers from subscribers.',
+    references: [
+      { title: 'Choose Cloud Tasks or Pub/Sub', url: 'https://docs.cloud.google.com/tasks/docs/comp-pub-sub' },
+    ],
   },
 ];

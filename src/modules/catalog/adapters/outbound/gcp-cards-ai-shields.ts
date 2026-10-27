@@ -1,5 +1,5 @@
 /**
- * Curated Vertex AI / Generative AI and Security & Governance Shield cards.
+ * Curated Agent Platform / Generative AI and Security & Governance Shield cards.
  */
 
 import type { CatalogCard } from '../../domain/card';
@@ -8,39 +8,47 @@ export const AI_AND_SHIELD_CARDS: readonly CatalogCard[] = [
   {
     id: 'vertex-gemini',
     kind: 'service',
-    title: 'Vertex AI Gemini Endpoint',
+    title: 'Gemini on Agent Platform',
     shortCode: 'GEM',
-    category: 'Vertex AI',
+    category: 'Agent Platform',
     ink: 'ai',
     energyCost: 3,
     basePoints: 115,
-    slaTier: '99.9% Enterprise Managed GenAI',
-    summary: 'Enterprise multimodal foundation model endpoint with IAM governance, VPC-SC, grounding, and zero customer-data training.',
+    slaTier: '99.5% Online Inference SLA',
+    summary: 'Gemini models on Gemini Enterprise Agent Platform (formerly Vertex AI) with IAM, VPC-SC, grounding, and no training on your data.',
     whenToUse: 'RAG synthesis, multimodal reasoning, structured extraction, and agentic workflows with enterprise data residency.',
     avoidWhen: 'Deterministic arithmetic or fixed-schema OCR where specialized Document AI processors are cheaper.',
     examTip: 'Provisioned Throughput reserves deterministic tokens-per-second capacity for production latency SLAs.',
+    references: [
+      { title: 'Overview of models on Agent Platform', url: 'https://docs.cloud.google.com/gemini-enterprise-agent-platform/models' },
+      { title: 'Gemini Online Inference API SLA', url: 'https://cloud.google.com/vertex-ai/generative-ai/sla' },
+      { title: 'Agent Platform and zero data retention', url: 'https://docs.cloud.google.com/gemini-enterprise-agent-platform/resources/zero-data-retention' },
+    ],
   },
   {
     id: 'vertex-vector-search',
     kind: 'service',
-    title: 'Vertex AI Vector Search',
-    shortCode: 'VVS',
-    category: 'Vertex AI',
+    title: 'Agent Platform Vector Search',
+    shortCode: 'AVS',
+    category: 'Agent Platform',
     ink: 'ai',
     energyCost: 2,
     basePoints: 95,
-    slaTier: 'Sub-10ms ScaNN ANN Index',
-    summary: 'Google ScaNN-powered Approximate Nearest Neighbor vector index scaling to billions of embeddings.',
+    slaTier: 'ScaNN ANN Index',
+    summary: 'Vector Search (formerly Vertex AI Vector Search): a ScaNN-powered Approximate Nearest Neighbor index for low-latency search over massive datasets.',
     whenToUse: 'Low-latency semantic retrieval for Enterprise RAG, recommendation engines, and multimodal similarity.',
     avoidWhen: 'Exact keyword/primary-key ACID lookups without semantic similarity requirements.',
     examTip: 'Supports streaming index updates alongside hybrid dense + sparse token filtering for accurate RAG recall.',
+    references: [
+      { title: 'Vector Search overview', url: 'https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/vector-search/overview' },
+    ],
   },
   {
     id: 'document-ai',
     kind: 'service',
     title: 'Document AI',
     shortCode: 'DOC',
-    category: 'Vertex AI',
+    category: 'Agent Platform',
     ink: 'ai',
     energyCost: 2,
     basePoints: 90,
@@ -48,14 +56,18 @@ export const AI_AND_SHIELD_CARDS: readonly CatalogCard[] = [
     summary: 'Pre-trained and custom layout-aware processors extracting tables, key-value fields, and entities from PDFs/scans.',
     whenToUse: 'Automated invoice, W-2, claim form, and contract layout parsing into structured JSON or RAG chunks.',
     avoidWhen: 'Already-structured JSON/Parquet streams that require zero OCR or layout parsing.',
-    examTip: 'Document AI Layout Parser preserves section hierarchy when chunking complex PDFs for Vertex AI RAG.',
+    examTip: 'Document AI Layout Parser preserves section hierarchy when chunking complex PDFs for Agent Platform RAG.',
+    references: [
+      { title: 'Document AI overview', url: 'https://docs.cloud.google.com/document-ai/docs/overview' },
+      { title: 'Process documents with Gemini layout parser', url: 'https://docs.cloud.google.com/document-ai/docs/layout-parse-chunk' },
+    ],
   },
   {
     id: 'vertex-ai-search',
     kind: 'service',
-    title: 'Vertex AI Search',
+    title: 'Agent Search',
     shortCode: 'VAS',
-    category: 'Vertex AI',
+    category: 'Agent Platform',
     ink: 'ai',
     energyCost: 2,
     basePoints: 85,
@@ -63,22 +75,28 @@ export const AI_AND_SHIELD_CARDS: readonly CatalogCard[] = [
     summary: 'Out-of-the-box Google-quality search and grounded answers over websites, documents and structured data.',
     whenToUse: 'Site search, product discovery, and help-center answers without building your own embedding pipeline.',
     avoidWhen: 'You need full control of chunking, embeddings and custom ranking (build RAG on Vector Search instead).',
-    examTip: 'Vertex AI Search (Agent Builder) indexes a data store for you; pick it for the fastest grounded search.',
+    examTip: 'Agent Search (formerly Vertex AI Search) indexes a data store for you; pick it for the fastest grounded search.',
+    references: [
+      { title: 'Agent Search (formerly Vertex AI Search)', url: 'https://docs.cloud.google.com/generative-ai-app-builder/docs' },
+    ],
   },
   {
     id: 'vertex-pipelines',
     kind: 'service',
-    title: 'Vertex AI Pipelines',
-    shortCode: 'VAP',
-    category: 'Vertex AI',
+    title: 'Agent Platform Pipelines',
+    shortCode: 'APP',
+    category: 'Agent Platform',
     ink: 'ai',
     energyCost: 2,
     basePoints: 90,
     slaTier: 'Serverless Kubeflow Pipelines',
-    summary: 'Serverless MLOps orchestration of training, evaluation and deployment steps with lineage in Vertex ML Metadata.',
+    summary: 'Serverless MLOps orchestration (formerly Vertex AI Pipelines) of training, evaluation and deployment steps with tracked lineage.',
     whenToUse: 'Repeatable train, evaluate and register runs, scheduled retraining, and gated model promotion.',
-    avoidWhen: 'Serving online predictions (use a Vertex AI endpoint) or generic business workflows (use Workflows).',
+    avoidWhen: 'Serving online predictions (use an Agent Platform endpoint) or generic business workflows (use Workflows).',
     examTip: 'Pipelines track artifact lineage; pair them with Model Registry and evaluation gates for safe promotion.',
+    references: [
+      { title: 'Introduction to Agent Platform Pipelines', url: 'https://docs.cloud.google.com/gemini-enterprise-agent-platform/machine-learning/pipelines/introduction' },
+    ],
   },
   {
     id: 'shield-iam',
@@ -94,6 +112,9 @@ export const AI_AND_SHIELD_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Hardening compute runtimes, serverless services, and data pipelines against lateral privilege escalation.',
     avoidWhen: 'Never—replace primitive Owner/Editor roles and default compute service accounts everywhere.',
     examTip: 'Prefer Workload Identity Federation over exported service account keys across GitHub Actions, AWS, and GKE.',
+    references: [
+      { title: 'Best practices for using service accounts securely', url: 'https://docs.cloud.google.com/iam/docs/best-practices-service-accounts' },
+    ],
   },
   {
     id: 'shield-armor',
@@ -109,6 +130,10 @@ export const AI_AND_SHIELD_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Shielding internet-facing Global External Application Load Balancers, CDN backends, and API front doors.',
     avoidWhen: 'Internal-only VPC workloads with no public external load balancer ingress.',
     examTip: 'Adaptive Protection uses ML to detect anomalous Layer-7 traffic spikes and auto-suggests WAF rules.',
+    references: [
+      { title: 'Cloud Armor overview', url: 'https://docs.cloud.google.com/armor/docs/cloud-armor-overview' },
+      { title: 'Adaptive Protection overview', url: 'https://docs.cloud.google.com/armor/docs/adaptive-protection-overview' },
+    ],
   },
   {
     id: 'shield-vpc-sc',
@@ -120,10 +145,14 @@ export const AI_AND_SHIELD_CARDS: readonly CatalogCard[] = [
     energyCost: 1,
     shieldPoints: 35,
     capability: 'vpc-service-controls',
-    summary: 'Context-aware service perimeters around managed Google APIs (BigQuery, Cloud Storage, Vertex AI) blocking data exfiltration.',
+    summary: 'Context-aware service perimeters around managed Google APIs (BigQuery, Cloud Storage, Agent Platform) blocking data exfiltration.',
     whenToUse: 'Preventing stolen credentials or insider threats from copying sensitive data to unauthorized GCP projects.',
     avoidWhen: 'Replacing network firewall rules—VPC-SC guards Google multi-tenant APIs, while VPC Firewalls guard VM packets.',
     examTip: 'Deploy VPC-SC in Dry-Run mode first to audit Cloud Audit Logs before enforcing perimeter blocks.',
+    references: [
+      { title: 'Overview of VPC Service Controls', url: 'https://docs.cloud.google.com/vpc-service-controls/docs/overview' },
+      { title: 'Dry run mode for service perimeters', url: 'https://docs.cloud.google.com/vpc-service-controls/docs/dry-run-mode' },
+    ],
   },
   {
     id: 'shield-kms',
@@ -139,6 +168,10 @@ export const AI_AND_SHIELD_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Regulated databases, object buckets, and application credentials requiring customer-controlled key revocation.',
     avoidWhen: 'Hardcoding API keys or DB passwords inside container images or plaintext environment variables.',
     examTip: 'Cloud EKM lets regulated customers keep encryption keys outside Google Cloud while still using managed services.',
+    references: [
+      { title: 'Customer-managed encryption keys (CMEK)', url: 'https://docs.cloud.google.com/kms/docs/cmek' },
+      { title: 'Cloud External Key Manager', url: 'https://docs.cloud.google.com/kms/docs/ekm' },
+    ],
   },
   {
     id: 'shield-iap',
@@ -154,5 +187,9 @@ export const AI_AND_SHIELD_CARDS: readonly CatalogCard[] = [
     whenToUse: 'Exposing internal employee portals, admin tools, or private VM SSH without public bastion hosts or VPNs.',
     avoidWhen: 'Anonymous unauthenticated consumer websites open to the general public.',
     examTip: 'IAP TCP forwarding (`gcloud compute start-iap-tunnel`) eliminates public bastion IPs by allowing `35.235.240.0/20`.',
+    references: [
+      { title: 'Identity-Aware Proxy overview', url: 'https://docs.cloud.google.com/iap/docs/concepts-overview' },
+      { title: 'Use IAP for TCP forwarding', url: 'https://docs.cloud.google.com/iap/docs/using-tcp-forwarding' },
+    ],
   },
 ];

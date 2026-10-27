@@ -44,9 +44,9 @@ const TRACK_CATALOG: readonly TrackInfo[] = [
   {
     id: 'vertex-ai',
     code: 'TRK-04',
-    title: 'Vertex AI & Enterprise GenAI',
+    title: 'Agent Platform & Enterprise GenAI',
     certificationFocus: 'Professional ML / GenAI Engineer',
-    summary: 'Grounded Gemini RAG, Vertex AI Vector Search ScaNN, Document AI layout OCR, and VPC-SC governance.',
+    summary: 'Grounded Gemini RAG, ScaNN Vector Search, Document AI layout OCR, and VPC-SC governance.',
   },
   {
     id: 'platform-ops',

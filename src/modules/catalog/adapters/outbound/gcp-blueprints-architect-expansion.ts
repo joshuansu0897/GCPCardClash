@@ -124,6 +124,11 @@ export const ARCHITECT_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] = 
       { id: 'e7', fromNodeId: 'app-vms', toNodeId: 'vm-monitoring', protocolLabel: 'Metrics & logs' },
       { id: 'e8', fromNodeId: 'inventory-db', toNodeId: 'head-office', protocolLabel: 'Stock export' },
     ],
+    references: [
+      { title: 'Migrate to Google Cloud: Get started', url: 'https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started' },
+      { title: 'Cloud SQL for SQL Server overview', url: 'https://docs.cloud.google.com/sql/docs/sqlserver/introduction' },
+      { title: 'Use IAP for TCP forwarding', url: 'https://docs.cloud.google.com/iap/docs/using-tcp-forwarding' },
+    ],
     distractorServiceIds: ['cloud-run', 'cloud-spanner', 'cloud-interconnect', 'artifact-registry'],
     solutionSummary:
       'The unchanged Windows app moves onto a managed instance group behind an Application Load Balancer, with Cloud NAT for patches and IAP for admin access. SQL Server becomes Cloud SQL, backups land in a locked Cloud Storage bucket, and Cloud Monitoring watches the VMs.',
@@ -259,6 +264,12 @@ export const ARCHITECT_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] = 
       { id: 'e6', fromNodeId: 'match-servers', toNodeId: 'telemetry-bus', protocolLabel: 'Match events' },
       { id: 'e7', fromNodeId: 'telemetry-bus', toNodeId: 'game-analytics', protocolLabel: 'BQ subscription' },
       { id: 'e8', fromNodeId: 'live-ops', toNodeId: 'game-analytics', protocolLabel: 'SQL', returnLabel: 'Retention' },
+    ],
+    references: [
+      { title: 'Spanner regional, dual-region and multi-region configurations', url: 'https://docs.cloud.google.com/spanner/docs/instance-configurations' },
+      { title: 'Bigtable writes', url: 'https://docs.cloud.google.com/bigtable/docs/writes' },
+      { title: 'Pub/Sub BigQuery subscriptions', url: 'https://docs.cloud.google.com/pubsub/docs/bigquery' },
+      { title: 'Memorystore for Redis overview', url: 'https://docs.cloud.google.com/memorystore/docs/redis/memorystore-for-redis-overview' },
     ],
     distractorServiceIds: ['cloud-sql-ha', 'cloud-bigtable', 'compute-engine-mig', 'cloud-tasks'],
     solutionSummary:

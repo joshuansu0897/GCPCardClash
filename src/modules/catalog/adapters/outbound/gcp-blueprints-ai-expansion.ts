@@ -1,5 +1,5 @@
 /**
- * Track 4 (Vertex AI & Enterprise GenAI) expansion: the Associate and Professional blueprints.
+ * Track 4 (Agent Platform & Enterprise GenAI) expansion: the Associate and Professional blueprints.
  */
 
 import type { ArchitectureBlueprint } from '../../domain/blueprint';
@@ -53,7 +53,7 @@ export const VERTEX_AI_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] = 
           'gke-autopilot': 'A single stateless web app does not need a Kubernetes cluster.',
         },
         defaultAntiPatternReason: 'A stateless web front end fits Cloud Run.',
-        architecturalRationale: 'Cloud Run calls Vertex AI with its own service account and scales to zero overnight.',
+        architecturalRationale: 'Cloud Run calls Agent Platform with its own service account and scales to zero overnight.',
       },
       {
         id: 'search-engine',
@@ -67,8 +67,8 @@ export const VERTEX_AI_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] = 
           'vertex-vector-search': 'Vector Search needs your own chunking and embedding pipeline; this team wants it managed.',
           'bigquery-dw': 'SQL LIKE queries are keyword matching, not semantic search.',
         },
-        defaultAntiPatternReason: 'Out-of-the-box semantic search over your documents is Vertex AI Search.',
-        architecturalRationale: 'Vertex AI Search builds and refreshes the index from a Cloud Storage data store.',
+        defaultAntiPatternReason: 'Out-of-the-box semantic search over your documents is Agent Search (formerly Vertex AI Search).',
+        architecturalRationale: 'Agent Search builds and refreshes the index from a Cloud Storage data store.',
       },
       {
         id: 'answer-model',
@@ -81,8 +81,8 @@ export const VERTEX_AI_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] = 
         antiPatternHints: {
           'document-ai': 'Document AI extracts fields from forms; it does not write answers.',
         },
-        defaultAntiPatternReason: 'Grounded answer generation is Gemini on Vertex AI.',
-        architecturalRationale: 'Gemini answers only from the passages it is given and returns their citations.',
+        defaultAntiPatternReason: 'Grounded answer generation is Gemini on Agent Platform.',
+        architecturalRationale: 'Gemini is prompted to answer only from the passages it is given and to cite them.',
       },
       {
         id: 'feedback-dw',
@@ -122,9 +122,13 @@ export const VERTEX_AI_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] = 
       { id: 'e6', fromNodeId: 'help-app', toNodeId: 'feedback-dw', protocolLabel: 'Ratings' },
       { id: 'e7', fromNodeId: 'support-writers', toNodeId: 'article-bucket', protocolLabel: 'Publish' },
     ],
+    references: [
+      { title: 'Agent Search (formerly Vertex AI Search)', url: 'https://docs.cloud.google.com/generative-ai-app-builder/docs' },
+      { title: 'Grounding overview', url: 'https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/grounding/overview' },
+    ],
     distractorServiceIds: ['vertex-vector-search', 'document-ai', 'gke-autopilot', 'memorystore-redis'],
     solutionSummary:
-      'An External ALB fronts a Cloud Run help center. Vertex AI Search indexes the articles in Cloud Storage, and Gemini writes a short, cited answer from the top results. Every rating streams to BigQuery so writers can fill the gaps.',
+      'An External ALB fronts a Cloud Run help center. Agent Search indexes the articles in Cloud Storage, and Gemini writes a short, cited answer from the top results. Every rating streams to BigQuery so writers can fill the gaps.',
   },
   {
     id: 'arc-404-fraud-mlops',
@@ -230,7 +234,7 @@ export const VERTEX_AI_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] = 
           'workflows-eventarc': 'Workflows can call APIs, but it records no model lineage or evaluation artifacts.',
           'vertex-gemini': 'A generative model does not replace training your own fraud classifier.',
         },
-        defaultAntiPatternReason: 'Repeatable train, evaluate and promote runs are Vertex AI Pipelines.',
+        defaultAntiPatternReason: 'Repeatable train, evaluate and promote runs are Agent Platform Pipelines.',
         architecturalRationale: 'An evaluation gate in the pipeline blocks any model that scores worse than production.',
       },
       {
@@ -260,8 +264,13 @@ export const VERTEX_AI_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[] = 
       { id: 'e9', fromNodeId: 'model-registry', toNodeId: 'scoring-api', protocolLabel: 'Canary deploy' },
       { id: 'e10', fromNodeId: 'data-scientists', toNodeId: 'training-pipeline', protocolLabel: 'Run', returnLabel: 'Eval report' },
     ],
+    references: [
+      { title: 'MLOps: Continuous delivery and automation pipelines in ML', url: 'https://docs.cloud.google.com/architecture/mlops-continuous-delivery-and-automation-pipelines-in-machine-learning' },
+      { title: 'Introduction to Agent Platform Pipelines', url: 'https://docs.cloud.google.com/gemini-enterprise-agent-platform/machine-learning/pipelines/introduction' },
+      { title: 'Bigtable overview', url: 'https://docs.cloud.google.com/bigtable/docs/overview' },
+    ],
     distractorServiceIds: ['vertex-gemini', 'dataproc-spark', 'cloud-sql-ha', 'cloud-run-functions'],
     solutionSummary:
-      'Cloud Run scores each payment using features from Bigtable and publishes the transaction to Pub/Sub. Dataflow keeps features fresh online and in BigQuery, a weekly Vertex AI Pipelines run retrains and evaluates the model, and only a better model is pushed to Artifact Registry and rolled out as a canary.',
+      'Cloud Run scores each payment using features from Bigtable and publishes the transaction to Pub/Sub. Dataflow keeps features fresh online and in BigQuery, a weekly Agent Platform Pipelines run retrains and evaluates the model, and only a better model is pushed to Artifact Registry and rolled out as a canary.',
   },
 ];

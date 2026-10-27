@@ -211,7 +211,7 @@ function HydraBody(props: BodyProps): JSX.Element {
   );
 }
 
-/** Vertex AI: the Hallucinator, an all-seeing oracle eye orbited by glitch cubes. */
+/** Agent Platform & GenAI: the Hallucinator, an all-seeing oracle eye orbited by glitch cubes. */
 function OracleBody(props: BodyProps): JSX.Element {
   const { theme } = props;
   const orbitRef = useRef<Group>(null);

@@ -135,6 +135,11 @@ export const ARCHITECT_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e6', fromNodeId: 'settlement-bus', toNodeId: 'worm-archive', protocolLabel: 'Avro export' },
       { id: 'e7', fromNodeId: 'global-ledger', toNodeId: 'risk-analytics', protocolLabel: 'Change stream' },
     ],
+    references: [
+      { title: 'Spanner regional, dual-region and multi-region configurations', url: 'https://docs.cloud.google.com/spanner/docs/instance-configurations' },
+      { title: 'What is Apigee?', url: 'https://docs.cloud.google.com/apigee/docs/api-platform/get-started/what-apigee' },
+      { title: 'Bucket Lock', url: 'https://docs.cloud.google.com/storage/docs/bucket-lock' },
+    ],
     distractorServiceIds: ['cloud-sql-ha', 'alloydb-postgres', 'cloud-bigtable', 'cloud-run-functions'],
     solutionSummary:
       'Global ALB + Apigee govern partner traffic into a multi-region GKE Autopilot mesh backed by Cloud Spanner for 99.999% active-active ACID ledger writes. Pub/Sub carries settlements to locked Cloud Storage WORM archives, and Spanner change streams feed BigQuery risk analytics.',
@@ -210,7 +215,7 @@ export const ARCHITECT_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
         acceptedServiceIds: ['alloydb-postgres'],
         recommendedShield: 'kms-secret-manager',
         antiPatternHints: {
-          'cloud-sql-ha': 'Cloud SQL caps SLA at 99.95% and lacks AlloyDB disaggregated storage and built-in columnar engine.',
+          'cloud-sql-ha': 'Cloud SQL lacks AlloyDB disaggregated storage and its built-in columnar engine for live analytics.',
           'firestore-db': 'Document NoSQL breaks complex relational ERP joins and stored procedures.',
         },
         defaultAntiPatternReason: 'High-throughput enterprise PostgreSQL needing 99.99% SLA and HTAP acceleration maps to AlloyDB.',
@@ -254,6 +259,11 @@ export const ARCHITECT_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e5', fromNodeId: 'erp-vms', toNodeId: 'erp-oltp', protocolLabel: 'SQL (PSA)', returnLabel: 'Rows' },
       { id: 'e6', fromNodeId: 'erp-oltp', toNodeId: 'bi-warehouse', protocolLabel: 'CDC' },
       { id: 'e7', fromNodeId: 'erp-oltp', toNodeId: 'erp-exports', protocolLabel: 'Nightly export' },
+    ],
+    references: [
+      { title: 'Establish 99.99% availability for Dedicated Interconnect', url: 'https://docs.cloud.google.com/network-connectivity/docs/interconnect/tutorials/dedicated-creating-9999-availability' },
+      { title: 'AlloyDB overview', url: 'https://docs.cloud.google.com/alloydb/docs/overview' },
+      { title: 'Cloud NAT overview', url: 'https://docs.cloud.google.com/nat/docs/overview' },
     ],
     distractorServiceIds: ['cloud-run', 'cloud-sql-ha', 'global-ext-alb', 'firestore-db'],
     solutionSummary:

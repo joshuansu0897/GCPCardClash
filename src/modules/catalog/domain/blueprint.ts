@@ -4,7 +4,7 @@
  * diagram grid, and study metadata.
  */
 
-import type { ShieldCapability, SubsystemInk } from './card';
+import type { DocReference, ShieldCapability, SubsystemInk } from './card';
 
 export type TrackId = 'foundations' | 'architect' | 'serverless-data' | 'vertex-ai' | 'platform-ops';
 
@@ -78,4 +78,6 @@ export interface ArchitectureBlueprint {
   readonly edges: readonly FlowEdge[];
   readonly distractorServiceIds: readonly string[];
   readonly solutionSummary: string;
+  /** Official Google Cloud pages the design and its facts were checked against. */
+  readonly references: readonly DocReference[];
 }

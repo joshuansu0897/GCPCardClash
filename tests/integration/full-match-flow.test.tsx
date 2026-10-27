@@ -12,7 +12,7 @@ describe('Full GCP Card Clash SPA integration flow', () => {
     cleanup();
   });
 
-  it('opens the Scenario Curriculum dialog, filters tracks, and switches to Vertex AI RAG', () => {
+  it('opens the Scenario Curriculum dialog, filters tracks, and switches to Agent Platform RAG', () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: /Blueprints/ }));

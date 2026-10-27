@@ -40,7 +40,7 @@ export const PLATFORM_OPS_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[]
           'compute-engine-mig': 'Builds on long-lived VMs can be tampered with between runs.',
         },
         defaultAntiPatternReason: 'Managed, attested builds and releases are Cloud Build with Cloud Deploy.',
-        architecturalRationale: 'Cloud Build records SLSA provenance and signs it with a Cloud KMS key.',
+        architecturalRationale: 'Cloud Build generates signed SLSA build provenance that Binary Authorization can verify.',
       },
       {
         id: 'image-registry',
@@ -139,6 +139,12 @@ export const PLATFORM_OPS_EXPANSION_BLUEPRINTS: readonly ArchitectureBlueprint[]
       { id: 'e8', fromNodeId: 'cluster-west', toNodeId: 'global-db', protocolLabel: 'Txn' },
       { id: 'e9', fromNodeId: 'cluster-east', toNodeId: 'fleet-ops', protocolLabel: 'Golden signals' },
       { id: 'e10', fromNodeId: 'fleet-ops', toNodeId: 'on-call', protocolLabel: 'Page', returnLabel: 'Ack' },
+    ],
+    references: [
+      { title: 'Generate and validate build provenance', url: 'https://docs.cloud.google.com/build/docs/securing-builds/generate-validate-build-provenance' },
+      { title: 'Binary Authorization overview', url: 'https://docs.cloud.google.com/binary-authorization/docs/overview' },
+      { title: 'About multi-cluster Gateways', url: 'https://docs.cloud.google.com/kubernetes-engine/docs/concepts/multi-cluster-gateways' },
+      { title: 'Spanner regional, dual-region and multi-region configurations', url: 'https://docs.cloud.google.com/spanner/docs/instance-configurations' },
     ],
     distractorServiceIds: ['cloud-run', 'cloud-sql-ha', 'compute-engine-mig', 'firestore-db'],
     solutionSummary:

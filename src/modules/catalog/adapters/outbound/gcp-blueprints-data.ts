@@ -123,6 +123,11 @@ export const SERVERLESS_DATA_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e6', fromNodeId: 'dashboard-api', toNodeId: 'hot-timeseries', protocolLabel: 'ReadRows', returnLabel: 'Latest rows' },
       { id: 'e7', fromNodeId: 'grid-operators', toNodeId: 'dashboard-api', protocolLabel: 'HTTPS', returnLabel: 'Live charts' },
     ],
+    references: [
+      { title: 'Bigtable schema design for time series data', url: 'https://docs.cloud.google.com/bigtable/docs/schema-design-time-series' },
+      { title: 'Dataflow streaming pipelines', url: 'https://docs.cloud.google.com/dataflow/docs/concepts/streaming-pipelines' },
+      { title: 'What is Pub/Sub?', url: 'https://docs.cloud.google.com/pubsub/docs/overview' },
+    ],
     distractorServiceIds: ['workflows-eventarc', 'cloud-run-functions', 'cloud-sql-ha', 'firestore-db'],
     solutionSummary:
       'Pub/Sub ingests global meter bursts into Dataflow, which fans out windowed streams simultaneously to Cloud Bigtable (sub-10ms serving), BigQuery (SQL/ML analytics), and Cloud Storage (cold Parquet lake). An IAP-gated Cloud Run API serves live Bigtable rows to grid operators.',
@@ -244,6 +249,11 @@ export const SERVERLESS_DATA_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e6', fromNodeId: 'domain-events', toNodeId: 'webhook-worker', protocolLabel: 'Push sub' },
       { id: 'e7', fromNodeId: 'webhook-worker', toNodeId: 'carrier-api', protocolLabel: 'Create label', returnLabel: 'Tracking #' },
       { id: 'e8', fromNodeId: 'mobile-apps', toNodeId: 'live-order-db', protocolLabel: 'Listen', returnLabel: 'Live status' },
+    ],
+    references: [
+      { title: 'Workflows overview', url: 'https://docs.cloud.google.com/workflows/docs/overview' },
+      { title: 'Eventarc overview', url: 'https://docs.cloud.google.com/eventarc/docs/overview' },
+      { title: 'Firestore real-time updates', url: 'https://docs.cloud.google.com/firestore/native/docs/query-data/listen' },
     ],
     distractorServiceIds: ['dataflow-beam', 'gke-autopilot', 'bigquery-dw', 'memorystore-redis'],
     solutionSummary:

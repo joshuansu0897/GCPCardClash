@@ -98,7 +98,7 @@ export const PLATFORM_OPS_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
           'bigquery-dw': 'A warehouse can analyse logs later, but it cannot page anyone at 3 a.m.',
         },
         defaultAntiPatternReason: 'Metrics, logs and alerting are Cloud Monitoring and Logging.',
-        architecturalRationale: 'GKE sends system and workload metrics automatically; alert policies page on-call.',
+        architecturalRationale: 'GKE sends system metrics and logs automatically; alert policies page on-call.',
       },
       {
         id: 'app-db',
@@ -124,6 +124,11 @@ export const PLATFORM_OPS_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e6', fromNodeId: 'app-cluster', toNodeId: 'app-db', protocolLabel: 'SQL', returnLabel: 'Rows' },
       { id: 'e7', fromNodeId: 'app-cluster', toNodeId: 'cluster-ops', protocolLabel: 'Metrics & logs' },
       { id: 'e8', fromNodeId: 'cluster-ops', toNodeId: 'on-call', protocolLabel: 'Page', returnLabel: 'Ack' },
+    ],
+    references: [
+      { title: 'Overview of Cloud Deploy', url: 'https://docs.cloud.google.com/deploy/docs/overview' },
+      { title: 'About Gateway API (GKE)', url: 'https://docs.cloud.google.com/kubernetes-engine/docs/concepts/gateway-api' },
+      { title: 'Artifact Registry overview', url: 'https://docs.cloud.google.com/artifact-registry/docs/overview' },
     ],
     distractorServiceIds: ['compute-engine-mig', 'cloud-run-functions', 'workflows-eventarc', 'cloud-storage'],
     solutionSummary:
@@ -260,6 +265,11 @@ export const PLATFORM_OPS_BLUEPRINTS: readonly ArchitectureBlueprint[] = [
       { id: 'e7', fromNodeId: 'alert-bus', toNodeId: 'auto-remediate', protocolLabel: 'Push' },
       { id: 'e8', fromNodeId: 'auto-remediate', toNodeId: 'api-fleet', protocolLabel: 'Roll back' },
       { id: 'e9', fromNodeId: 'slo-alerting', toNodeId: 'on-call', protocolLabel: 'Page', returnLabel: 'Ack' },
+    ],
+    references: [
+      { title: 'Use a canary deployment strategy', url: 'https://docs.cloud.google.com/deploy/docs/deployment-strategies/canary' },
+      { title: 'Alerting on your burn rate', url: 'https://docs.cloud.google.com/stackdriver/docs/solutions/slo-monitoring/alerting-on-budget-burn-rate' },
+      { title: 'Create and manage notification channels', url: 'https://docs.cloud.google.com/monitoring/support/notification-options' },
     ],
     distractorServiceIds: ['compute-engine-mig', 'gke-autopilot', 'cloud-tasks', 'firestore-db'],
     solutionSummary:
