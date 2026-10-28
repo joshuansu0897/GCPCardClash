@@ -4,7 +4,7 @@
  * Each effect retires itself through `onDone` once its timeline has played out.
  */
 
-import { RoundedBox, Sparkles } from '@react-three/drei';
+import { RoundedBox } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { type JSX, useRef } from 'react';
 import type { Group, Mesh, MeshBasicMaterial } from 'three';
@@ -13,6 +13,7 @@ import { type IncidentManifestation, getIncidentCard } from '../../battle';
 import type { CatalogCard } from '../../catalog';
 import type { BoardEvent } from '../domain/board-events';
 import { INK_HEX, type PadPlacement, type TerracePlacement } from '../domain/board-layout';
+import { GlowSparkles } from './glow-sparkles';
 import { IncidentSpectacle, type SpectacleArea } from './incident-spectacle';
 import { OWNER_HEX, clamp01, easeInQuad, easeOutCubic, nowSec } from './motion';
 
@@ -261,8 +262,8 @@ function VictoryBurst(props: { readonly startsAt: number; readonly onDone: () =>
 
   return (
     <group position={[0, 2.5, 0]}>
-      <Sparkles count={90} scale={[12, 5, 8]} size={6} speed={0.8} color="#FBBF24" />
-      <Sparkles count={60} scale={[10, 4, 7]} size={4} speed={0.6} color="#60A5FA" />
+      <GlowSparkles count={90} scale={[12, 5, 8]} size={6} speed={0.8} color="#FBBF24" />
+      <GlowSparkles count={60} scale={[10, 4, 7]} size={4} speed={0.6} color="#60A5FA" />
     </group>
   );
 }

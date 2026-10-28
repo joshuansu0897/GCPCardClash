@@ -36,7 +36,10 @@ const FRAGMENT_SHADER = /* glsl */ `
   }
 
   void main() {
-    float fresnel = pow(1.0 - abs(dot(vNormal, vView)), 2.2);
+    // WHY: where the dome faces the camera head-on, rounding can push the dot product just past 1.
+    // pow() of the negative base is NaN on GPUs, and Bloom smears one NaN pixel over the whole board.
+    float facing = min(abs(dot(vNormal, vView)), 1.0);
+    float fresnel = pow(1.0 - facing, 2.2);
     float lattice = 1.0 - smoothstep(0.0, 0.07, hexEdge(vUv * vec2(20.0, 8.0)));
     float scan = 0.5 + 0.5 * sin(vUv.y * 26.0 - uTime * 2.6);
     float alpha = fresnel * 0.85 + lattice * (0.18 + 0.22 * scan) + 0.04;

@@ -4,12 +4,12 @@
  * island and flares whenever the Rival lands a card, so its turn reads as the enemy acting.
  */
 
-import { Sparkles } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { type JSX, type RefObject, useRef } from 'react';
 import type { Group, Mesh, MeshStandardMaterial } from 'three';
 
 import type { EnemyForm, TrackTheme } from '../domain/track-theme';
+import { GlowSparkles } from './glow-sparkles';
 import { GolemBody } from './golem-body';
 import { clamp01, nowSec } from './motion';
 import type { ActiveEffect } from './vfx-layer';
@@ -41,7 +41,7 @@ export function RivalAvatar(props: RivalAvatarProps): JSX.Element {
     <group ref={rootRef} position={props.position as [number, number, number]}>
       <EnemyBody form={props.theme.enemyForm} theme={props.theme} glowRef={glowRef} />
       <BossCrown y={CROWN_Y[props.theme.enemyForm]} glow={props.theme.enemyGlow} />
-      <Sparkles count={26} scale={[3.2, 3.2, 2]} size={4} speed={0.5} color={props.theme.enemyGlow} />
+      <GlowSparkles count={26} scale={[3.2, 3.2, 2]} size={4} speed={0.5} color={props.theme.enemyGlow} />
     </group>
   );
 }

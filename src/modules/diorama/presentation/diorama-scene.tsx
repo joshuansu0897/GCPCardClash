@@ -4,7 +4,6 @@
  * and the post-processing look. Rendered inside `<Canvas>` by `DioramaBoard`.
  */
 
-import { Sparkles } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { type JSX, type ReactNode, useMemo, useRef } from 'react';
 import type { Group } from 'three';
@@ -19,6 +18,7 @@ import type { CameraFrame, ViewInsets } from '../domain/camera-fit';
 import { CloudBoundary, ContextActors } from './context-actors';
 import { FittedCameraRig } from './fitted-camera-rig';
 import { FloatingIsland, SkyClouds } from './floating-island';
+import { GlowSparkles } from './glow-sparkles';
 import { type LabelAnchor, LabelProjector, type LabelRegistry } from './label-overlay';
 import { nowSec } from './motion';
 import { RivalAvatar } from './rival-avatar';
@@ -175,7 +175,7 @@ function SceneAtmosphere(props: {
 
   return (
     <>
-      <Sparkles
+      <GlowSparkles
         count={props.reducedMotion ? 0 : theme.ambient.count}
         scale={[width + 8, 9, depth + 8]}
         position={[0, 2.5, 0]}
