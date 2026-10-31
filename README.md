@@ -2,6 +2,8 @@
 
 Interactive turn-based **Google Cloud Platform (GCP)** architecture strategy card game and reference topology study workbench inspired by *AWS Card Clash*.
 
+Page: https://joshuansu0897.github.io/GCPCardClash/
+
 ## Features
 
 - **4 Certification & Solution Tracks (8 Reference Blueprints)**:
