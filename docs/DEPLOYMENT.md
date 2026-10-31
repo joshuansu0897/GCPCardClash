@@ -8,7 +8,7 @@ Live URL once enabled: `https://joshuansu0897.github.io/GCPCardClash/`
 
 ```mermaid
 flowchart LR
-  push(["push to master<br/>or manual run"]) --> ci["npm ci"]
+  push(["push to main<br/>or manual run"]) --> ci["npm ci"]
   ci --> test["npm test"]
   test --> build["npm run build<br/>--base=/GCPCardClash/"]
   build --> upload["upload dist/<br/>as Pages artifact"]
@@ -22,7 +22,7 @@ A failing test stops the run before anything is published. `npm run build` runs 
 
 1. **Make Pages available.** GitHub Pages on a private repository needs GitHub Pro, Team or Enterprise. On a free account, make the repository public (*Settings → General → Danger Zone → Change visibility*).
 2. **Pick the source.** *Settings → Pages → Build and deployment → Source:* **GitHub Actions**.
-3. **Run it.** Push to `master`, or open *Actions → Deploy to GitHub Pages → Run workflow*.
+3. **Run it.** Push to `main`, or open *Actions → Deploy to GitHub Pages → Run workflow*.
 4. **Check it.** The run's `deploy` job links the live URL. Load a blueprint, switch to 3D and play a card to confirm models and sounds load.
 
 ## Why the base path matters
