@@ -16,6 +16,7 @@ Human-readable registry of Bounded Contexts, public facades, outbound ports, and
 
 * **`src/shared/`**: Pure presentational SVG technical icons (`gcp-icons.tsx`) and the Web Audio sound board (`audio/sound-board.ts`, CC0 sounds in `public/audio`, ADR-0009), both with zero domain state.
 * **`src/App.tsx` & `src/main.tsx`**: Explicit constructor/factory composition root wiring `StaticCatalogRepository` and `BrowserProgressRepository` into the `arena` playboard, and lazily injecting the `diorama` board when `detectWebGLSupport()` passes.
+* **Deployment**: `.github/workflows/deploy-pages.yml` tests, builds with the Pages base path and publishes `dist/` to GitHub Pages (ADR-0011, `docs/DEPLOYMENT.md`).
 
 ## Context Relationships
 
