@@ -8,7 +8,7 @@ web
 
 ## Stack
 
-React 19 + TypeScript + Vite (client-only single-page web application with local browser storage for campaign progress; static-deployable to Firebase Hosting or Google Cloud Storage).
+React 19 + TypeScript + Vite (client-only single-page web application with local browser storage for campaign progress; static-deployable to GitHub Pages or any static host; see `docs/DEPLOYMENT.md`).
 
 ## Users
 
@@ -25,18 +25,19 @@ Unlike static architecture diagrams or flashcard quizzes, every match is an acti
 ## Operating Context
 
 Used in desktop and tablet/mobile web browsers during study sessions, architecture prep, or quick tactical matches. Learners alternate between:
-1. Selecting a curriculum track and blueprint scenario across four GCP tracks:
-   - Associate / Cloud Foundations
-   - Professional Cloud Architect (Global & Resilient Systems)
-   - Serverless & Event-Driven Data Pipelines
-   - Vertex AI & Generative AI Solutions
-2. Playing turn-based matches against an AI Rival (drawing Provisioning/Energy, GCP Service, and Security cards; cycling unsuitable cards via Discard; placing services into topology slots; hardening deployed nodes; scoring up to 3 stars).
+1. Selecting one of 19 blueprint scenarios across five GCP tracks, each with an Associate → Professional → Specialist ladder:
+   - TRK-01 Cloud Foundations & Zero-Trust
+   - TRK-02 Global & Hybrid Cloud Architect
+   - TRK-03 Serverless & Streaming Data
+   - TRK-04 Agent Platform & Enterprise GenAI
+   - TRK-05 Kubernetes & Platform Reliability
+2. Playing turn-based matches against the track's boss (drawing Provisioning/Energy, GCP Service, and Security cards; cycling unsuitable cards via Discard; placing services into topology slots; hardening deployed nodes; scoring up to 3 stars).
 3. Using Guided Study / Inspect Mode to explore the completed GCP reference architecture, service trade-offs ("Why this service vs. alternatives"), data/control flow links, and Google Cloud Well-Architected Framework pillars.
 
 ## Capabilities and Constraints
 
 - 100% client-side execution in v1 with deterministic game engine rules and local persistence (`localStorage`) for unlocked blueprints, best scores, and 1–3 star mastery ratings.
-- All GCP service descriptions, architectural slot constraints, security pairings, and anti-pattern explanations must reflect accurate, current Google Cloud Platform architecture best practices (e.g., Cloud Run vs. GKE vs. Compute Engine MIGs; Cloud SQL vs. AlloyDB vs. Cloud Spanner; Firestore vs. Bigtable vs. BigQuery; Pub/Sub + Dataflow + Eventarc + Workflows; Vertex AI Gemini + Vector Search + Grounding).
+- All GCP service descriptions, architectural slot constraints, security pairings, and anti-pattern explanations must reflect accurate, current Google Cloud Platform architecture best practices (e.g., Cloud Run vs. GKE vs. Compute Engine MIGs; Cloud SQL vs. AlloyDB vs. Cloud Spanner; Firestore vs. Bigtable vs. BigQuery; Pub/Sub + Dataflow + Eventarc + Workflows; Gemini on Agent Platform + Vector Search + grounding). Every card and blueprint cites the official Google Cloud docs it was checked against (ADR-0010).
 - Zero cloud credentials or backend servers required to run, play, or test locally.
 - Codebase follows Hexagonal / Clean Architecture (`domain/` -> `application/` -> `adapters/`) with strict TypeScript types and automated verification gates.
 
